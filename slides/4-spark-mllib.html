@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="description" content="Introduction to Apache Spark">
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+        <title>4. Spark MLlib APIs</title>
+
+        <link rel="stylesheet" href="../reveal.js/css/reveal.css">
+        <link rel="stylesheet" href="../reveal.js/css/theme/black.css" id="theme">
+        <!-- Code syntax highlighting -->
+        <link rel="stylesheet" href="../reveal.js/lib/css/zenburn.css">
+        <!-- Printing and PDF exports -->
+        <script>
+            var link = document.createElement( 'link' );
+            link.rel = 'stylesheet';
+            link.type = 'text/css';
+            link.href = window.location.search.match( /print-pdf/gi ) ? '../reveal.js/css/print/pdf.css' : '../reveal.js/css/print/paper.css';
+            document.getElementsByTagName( 'head' )[0].appendChild( link );
+        </script>
+        <!--[if lt IE 9]>
+        <script src="lib/js/html5shiv.js"></script>
+        <![endif]-->
+        <style type="text/css">
+            p { text-align: left; }
+        </style>
+    </head>
+
+    <body>
+        <div class="reveal">
+            <div class="slides">
+                <section>
+                    <h1>Introduction to Apache Spark</h1>
+                    <br>
+                    <br>
+                    <h3>4. Spark MLlib APIs</h3>
+                </section>
+
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        ## Reminder: Homeworks
+
+                        - Expected by email before the following class
+                        - Submit the exported notebook (.ipynb extension)
+                        - File name should include both student name and no space (FirstName1LastName1_FirstName2LastName2.py) for instance
+                    </script>
+                </section>
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        ## Overview
+                        - Spark MLlib is the name given to Spark's Machine Learning library
+                        - Since Spark 1.6, there are two APIs for Spark ML:
+                            - RDD API: The older, original one
+                            - DataFrame API: The new, stable one
+                        - Since Spark 2.0, it's recommended to use only the **DataFrame API**
+                        - But we will see an overview of the RDD API
+                    </script>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## RDD API - Intro
+                            - As the name hints, it uses RDDs
+                            - All functionality is in the package `pyspark.mllib`
+
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## RDD API - Intro
+                            - Most models follow basically the same pattern:
+                               - `import ModelName`
+                               - `trained_model = ModelName.train(training_data, params)`
+                               - `model.predict()`
+                        </script>
+                    </section>
+                </section>
+
+
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        ## RDD API - Functionalities
+                        - General Purpose
+                          - summary, correlation, random data generation
+                        - Dimensionality Reduction
+                        - Feature extraction and transformation
+                        - Evaluation Methods
+                    </script>
+                </section>
+
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        ## RDD API - Model Categories
+                        - Classification and Regression
+                          - linear models, Bayes, decision trees, random forests, etc.
+                        - Clustering
+                          - k-means, gaussian mixture, PIC, LDA, etc.
+                        - Frequent Pattern Mining
+                          - fp-growth, association rule mining, etc.
+                    </script>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## RDD API - Data Types
+                            - To apply Machine Learning algorithims, MLlib comes with some new data types:
+                                - Local vectors (dense and sparse)
+                                - Labeled points
+                                - Local matrix
+                                - Distributed matrix
+                            - They can be imported from the package `pyspark.mllib.linalg`
+                        </script>
+                    </section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            ### Local Vectors
+                            - Local because they are not distributed
+                            - For dense vectors, Spark accepts python lists or numpy arrays
+                            - For sparse vecctors, Spark accepts single-column csc_matrices (from SciPy)
+                                -**But** it's recomended to use `Vector.sparse`
+
+                        </script>
+                    </section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            ```python
+                            import numpy as np
+                            import scipy.sparse as sps
+                            from pyspark.mllib.linalg import Vectors
+
+                            # Use a NumPy array as a dense vector.
+                            dv1 = np.array([1.0, 0.0, 3.0])
+
+                            # Use a Python list as a dense vector.
+                            dv2 = [1.0, 0.0, 3.0]
+
+                            # Create a SparseVector.
+                            sv1 = Vectors.sparse(3, [0, 2], [1.0, 3.0])
+                            ```
+                        </script>
+                    </section>
+
+                    <section data-markdown>
+                        <script type="text/template">
+                            ### Labeled Point
+                            - Used in supervised algorithms
+                            - For binary classification, the label is either 0 (negative) or 1 (positive)
+                            - For multi-class classification, the label represents a class index, starting from 0
+
+                            ```
+                            from pyspark.mllib.linalg import SparseVector
+                            from pyspark.mllib.regression import LabeledPoint
+
+                            # Create a labeled point with a positive label and a dense feature vector.
+                            pos = LabeledPoint(1.0, [1.0, 0.0, 3.0])
+
+                            # Create a labeled point with a negative label and a sparse feature vector.
+                            neg = LabeledPoint(0.0, SparseVector(3, [0, 2], [1.0, 3.0]))
+                            ```
+                        </script>
+                    </section>
+
+                    <section data-markdown>
+                        <script type="text/template">
+                            ### Local Matrix
+                            - Local because it's not distributed
+                            - Can be either dense or sparse
+                            - Should be created with Matrix.dense or or Matrix.sparse
+
+                            ```
+                            from pyspark.mllib.linalg import Matrix, Matrices
+
+                            # Create a dense matrix ((1.0, 2.0), (3.0, 4.0), (5.0, 6.0))
+                            dm2 = Matrices.dense(3, 2, [1, 2, 3, 4, 5, 6])
+
+                            # Create a sparse matrix ((9.0, 0.0), (0.0, 8.0), (0.0, 6.0))
+                            sm = Matrices.sparse(3, 2, [0, 1, 3], [0, 2, 1], [9, 6, 8])
+                            ```
+                        </script>
+                    </section>
+
+                    <section data-markdown>
+                        <script type="text/template">
+                            ### Distributed Matrix
+                            - For "big-data" matrices
+                            - There are four types:
+                                - RowMatrix: RDD of rows (each row is a Vector)
+                                - IndexedRowMatrix: Similar to RowMatrix, but each row has an index
+                                - CoordinateMatrix: RDD of (i, j, value); Should be used only when both dimensions are "big"
+                                - BlockMatrix: RDD of MatrixBlocks (sub-matrices of the type (i, j, Matrix))
+
+                        </script>
+                    </section>
+
+
+                    <section data-markdown>
+                        <script type="text/template">
+                            ### Examples
+
+                            ```Python
+                            from pyspark.mllib.linalg.distributed import *
+
+                            # RowMatrix
+                            rows = sc.parallelize([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]])
+                            r_mat = RowMatrix(rows)
+
+                            # IndexedRowMatrix
+                            indexedRows = sc.parallelize([
+                                (0, [1, 2, 3]),
+                                (1, [4, 5, 6]),
+                                (2, [7, 8, 9]),
+                                (3, [10, 11, 12])
+                            ])
+                            ir_mat = IndexedRowMatrix(indexedRows)
+                            ```
+
+                        </script>
+                    </section>
+
+                    <section data-markdown>
+                        <script type="text/template">
+                            ### Examples (cont.)
+
+                            ```Python
+                            from pyspark.mllib.linalg.distributed import *
+
+                            # CoordinateMatrix
+                            entries = sc.parallelize([
+                                (0, 0, 1.2), (1, 0, 2.1), (2, 1, 3.7)
+                            ])
+                            coo_mat = CoordinateMatrix(entries)
+
+                            # BlockMatrix
+                            blocks = sc.parallelize([
+                                ((0, 0), Matrices.dense(3, 2, [1, 2, 3, 4, 5, 6])),
+                                ((1, 0), Matrices.dense(3, 2, [7, 8, 9, 10, 11, 12]))
+                            ])
+                            mat = BlockMatrix(blocks, 3, 2)
+
+                            ```
+                        </script>
+                    </section>
+                </section>
+
+
+                <section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            ## RDD API - General Purpose
+                            - MLlib contains some general-purpose functionality
+                            - Some examples:
+                                - Column-wise summary
+                                - Correlations
+                                - Full list can be found [here](https://spark.apache.org/docs/2.1.0/mllib-statistics.html)
+                                - And the full docs, [here](https://spark.apache.org/docs/latest/api/python/pyspark.mllib.html#pyspark.mllib.stat.Statistics)
+                        </script>
+                    </section>
+
+                    <section data-markdown>
+                        <script type="text/template">
+                            ### Column-wise summary
+                            - The function colStats() can be applied to a matrix to find some stats for each column:
+                                - total count
+                                - min, max, mean and variance
+                                - number of non-zeroes
+
+                            ```
+                            import numpy as np
+                            from pyspark.mllib.stat import Statistics
+
+                            mat = sc.parallelize([
+                                np.array([1.0, 10.0, 100.0]),
+                                np.array([2.0, 20.0, 200.0]),
+                                np.array([3.0, 30.0, 300.0])
+                            ])
+
+                            summary = Statistics.colStats(mat)
+
+                            mean = summary.mean()
+                            variance = summary.variance()
+                            # etc.
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown>
+                        <script type="text/template">
+                            ### Correlations
+                            - Can be applied to multiple series (RDD of float) in order to find correlation between them
+                            - Can use either "spearman" or "pearson" (default) methods
+
+                            ```
+                            from pyspark.mllib.stat import Statistics
+
+                            seriesX = sc.parallelize([1.0, 2.0, 3.0, 3.0, 5.0])
+                            seriesY = sc.parallelize([11.0, 22.0, 33.0, 33.0, 555.0])
+
+                            corr = Statistics.corr(seriesX, seriesY, method="pearson")
+                            ```
+                        </script>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown >
+                        <script type="text/template">
+                            ## RDD API: <br>Classification and Regression
+                            - Most common ML algorithms
+                            - Some examples will be covered by this course
+                            - Docs:
+                                - [Guide](https://spark.apache.org/docs/latest/mllib-classification-regression.html)
+                                - [Classification package](https://spark.apache.org/docs/latest/api/python/pyspark.mllib.html#module-pyspark.mllib.classification)
+                                - [Regression package](https://spark.apache.org/docs/latest/api/python/pyspark.mllib.html#module-pyspark.mllib.regression)
+
+                        </script>
+                    </section>
+
+                    <section data-markdown >
+                        <script type="text/template">
+                            ## Available Methods
+
+                            | Type | Available methods |
+                            | - | - |
+                            | Regression | linear least squares, Lasso, ridge regression, decision trees, random forests, gradient-boosted trees, isotonic regression |
+                            | Binary Classification | linear SVMs, logistic regression, decision trees, random forests, gradient-boosted trees, naive Bayes |
+                            | Multiclass Classification | logistic regression, decision trees, random forests, naive Bayes |
+
+                        </script>
+                    </section>
+
+                    <section data-markdown >
+                        <script type="text/template">
+                            ## Decision trees
+                            - Very popular
+                            - Can be used for both classification and regression
+                            - In spark, 3 strategies for impority are accepted: "gini", "entropy" and "variance"
+                            - Details of the algorithm can be found [here](https://spark.apache.org/docs/latest/mllib-decision-tree.html)
+                        </script>
+                    </section>
+
+                    <section data-markdown >
+                        <script type="text/template">
+                            ## Example
+                            ```python
+                            # split data
+                            (trainingData, testData) = data.randomSplit([0.7, 0.3])
+
+                            # train model
+                            model = DecisionTree.trainClassifier(trainingData, numClasses=2,
+                                categoricalFeaturesInfo={}, impurity='gini', maxDepth=5, maxBins=32
+                            )
+
+                            # predict
+                            predictions = model.predict(testData.map(lambda x: x.features))
+
+                            # compute error
+                            labelsAndPredictions = testData.map(lambda lp: lp.label).zip(predictions)
+                            testErr = labelsAndPredictions.filter(lambda lp: lp[0] != lp[1]).count() / float(testData.count())
+                            ```
+                        </script>
+                    </section>
+                </section>
+
+                <section data-markdown>
+                  <script type="text/template">
+                    ## RDD API
+                    - For more details:
+                        - [Guide](https://spark.apache.org/docs/latest/mllib-guide.html)
+                        - [Full method documentation](https://spark.apache.org/docs/latest/api/python/pyspark.mllib.html)
+                  </script>
+                </section>
+
+                <section data-markdown>
+                  <script type="text/template">
+                    ## DataFrame API - Intro
+                    - Instead of RDDs of vectors or matrices, it uses DataFrame
+                    - DataFrames are much easier to manipulate, so this API is becoming the main one
+                    - However, it still doesn't contain all the functionality of the RDD API
+                    - Complete parity between both APIs is expected to be achieved in Spark 2.3
+                  </script>
+                </section>
+
+                <section>
+                  <section data-markdown>
+                    <script type="text/template">
+                      ## DataFrame API - Components
+                      - The DataFrame API tries to simplify things by defining some few global components:
+                          - Transformer: an algorithm that transforms a DataFrame into another one.
+                          - Estimator: an algorithm that transforms a DataFrame into a Transformer
+                          - Pipeline: allows chaining multiple Transformers and Estimators
+                          - Parameter: a common strategy to define parameters
+                    </script>
+                  </section>
+                </section>
+
+                <section>
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### DF API: Transformers
+                      - DataFrame -> DataFrame
+                      - Example 1: Tokenizer (e.g. break text into words)
+
+                      ```python
+                      from pyspark.ml.feature import Tokenizer, RegexTokenizer
+
+                      sentenceDataFrame = spark.createDataFrame([
+                          (0, "This is a sentence"),
+                          (1, "This is another one"),
+                      ], ["id", "sentence"])
+
+                      tokenizer = Tokenizer(inputCol="sentence", outputCol="words")
+                      tokenized = tokenizer.transform(sentenceDataFrame)
+
+                      tokenized.select("sentence", "words").show(5, False)
+                      ```
+                      ```
+                      +-------------------+------------------------+
+                      |sentence           |words                   |
+                      +-------------------+------------------------+
+                      |This is a sentence |[this, is, a, sentence] |
+                      |This is another one|[this, is, another, one]|
+                      +-------------------+------------------------+
+                      ```
+                    </script>
+                  </section>
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### DF API: Transformers
+                      - DataFrame -> DataFrame
+                      - Example 2: Applying a Model (transform in this case means predict)
+
+                      ```python
+                      training_data = ...
+                      test_data = ...
+
+                      dt = DecisionTreeClassifier(labelCol="indexedLabel", featuresCol="indexedFeatures")
+                      model = dt.fit(training_data)
+
+                      # 'model' is a Transformer, so 'predictions' will be a DataFrame
+                      predictions = model.transform(test_data)
+                      ```
+                    </script>
+                  </section>
+                </section>
+
+                <section>
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### DF API: Estimators
+                      - DataFrame -> Transformer
+                      - Example: Learning a Model
+
+                      ```python
+                      training_data = ...
+                      test_data = ...
+
+                      dt = DecisionTreeClassifier(labelCol="indexedLabel", featuresCol="indexedFeatures")
+
+                      # 'dt' is an Estimator, so the returned value will be a Transformer
+                      model = dt.fit(training_data)
+
+                      predictions = model.transform(test_data)
+                      ```
+                    </script>
+                  </section>
+                </section>
+
+
+                <section>
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### DF API: Parameters
+                      - Common interface for configuring Transformers and Estimators
+                      - Three main approaches:
+                        - Passing them directly in the call
+                        - Using setters
+                        - Using dictionaries
+                      - You can mix the approaches!
+                    </script>
+                  </section>
+
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### DF API: Parameters
+                      - Passing in the call
+
+                      ```python
+                      training_data = ...
+                      test_data = ...
+
+                      dt = DecisionTreeClassifier(labelCol="indexedLabel", featuresCol="indexedFeatures", impurity="gini")
+
+                      model = dt.fit(training_data)
+
+                      predictions = model.transform(test_data)
+                      ```
+                    </script>
+                  </section>
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### DF API: Parameters
+                      - Using setters
+
+                      ```python
+                      training_data = ...
+                      test_data = ...
+
+                      dt = DecisionTreeClassifier(labelCol="indexedLabel", featuresCol="indexedFeatures")
+
+                      # Using a setter:
+                      dt.setImpurity('gini')
+
+                      model = dt.fit(training_data)
+
+                      predictions = model.transform(test_data)
+                      ```
+                    </script>
+                  </section>
+
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### DF API: Parameters
+                      - Using dict (Note this overrides previous parameters)
+
+                      ```python
+                      training_data = ...
+                      test_data = ...
+
+                      dt = DecisionTreeClassifier()
+
+                      # Using a dictionary:
+
+                      params = dict {
+                        dt.labelCol: 'indexedLabel',
+                        dt.featuresCol: 'indexedFeatures'
+                        dt.impurity: 'giti'
+                      }
+
+                      model = dt.fit(training_data, params)
+
+                      predictions = model.transform(test_data)
+                      ```
+                    </script>
+                  </section>
+                </section>
+
+
+                <section>
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### DF API: Pipelines
+                      - Allows chaining multiple transformers and estimators
+                      - Very useful when we need to execute multiple data transformations before fitting a model
+                      ```
+                    </script>
+                  </section>
+
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### Basic Example:
+                      - Suppose we have the three following tasks:
+                        1. Split a document's text into words;
+                        2. Convert each document’s words into a numerical feature vector;
+                        3. Learn a Logistic Regression model.
+                      - With the DF API we can make a Pipeline that looks like the following:
+
+                      <p style="text-align: center"><img src="https://spark.apache.org/docs/latest/img/ml-Pipeline.png"/></p>
+                    </script>
+                  </section>
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### Basic Example:
+                      - When we create a Pipeline, it's an Estimator, which means it returns a Transformer
+                      - Then, the returned Transformer can be used to predict:
+
+
+                      <p style="text-align: center"><img src="https://spark.apache.org/docs/latest/img/ml-PipelineModel.png" align="middle"/></p>
+                    </script>
+                  </section>
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### Basic Example:
+                      - Code: Preparation
+
+                      ```python
+                      from pyspark.ml import Pipeline
+                      from pyspark.ml.classification import LogisticRegression
+                      from pyspark.ml.feature import HashingTF, Tokenizer
+
+                      training_data = spark.createDataFrame([
+                        (0,    "a b c d e hello",  1.0),
+                        (1,    "b d",              0.0),
+                        (2,    "hello f g h",      1.0),
+                        (3,    "oh god",           0.0)
+                      ],["id", "text",            "label"])
+                      ```
+
+                    </script>
+                  </section>
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### Basic Example:
+                      - Code: building the Pipeline
+
+                      ```python
+                      tokenizer = Tokenizer(inputCol="text", outputCol="words")
+                      hashingTF = HashingTF(inputCol=tokenizer.getOutputCol(), outputCol="features")
+                      lr = LogisticRegression(maxIter=10, regParam=0.001)
+
+                      pipeline = Pipeline(stages=[tokenizer, hashingTF, lr])
+                      model = pipeline.fit(training_data)
+                      ```
+
+                    </script>
+                  </section>
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### Basic Example:
+                      - Code: predicting test_data
+
+                      ```python
+                      test_data = spark.createDataFrame([
+                         (4,    "hello i j k"),
+                         (5,    "l m n"),
+                         (6,    "hello god hello"),
+                         (7,    "apache god")
+                      ], ["id", "text"])
+
+                      prediction = model.transform(test_data)
+                      prediction.select("id", "text", "probability", "prediction").show()
+                      ```
+                      ```
+                      +---+---------------+----------------+----------+
+                      |id |text           |probability     |prediction|
+                      +---+---------------+----------------+----------+
+                      |4  |hello i j k    |[0.1596,0.8403] |1.0       |
+                      |5  |l m n          |[0.8378,0.1621] |0.0       |
+                      |6  |hello god hello|[0.0692,0.9307] |1.0       |
+                      |7  |apache god     |[0.9821,0.0178] |0.0       |
+                      +---+---------------+----------------+----------+
+                      ```
+                    </script>
+                  </section>
+                </section>
+
+                <section>
+                  <section data-markdown>
+                    <script type="text/template">
+                    ## Feature extraction and manipulation
+                    - There are many transformers and estimators for extracting and manipulating features
+                    - Some useful examples include:
+                      - Tokenizer (as we have already seen)
+                      - StopWordsRemover
+                      - Binarizer
+                      - StringIndexer
+                      - Bucketizer
+                    - The full list with explanation and examples can be found [here](https://spark.apache.org/docs/latest/ml-features.html)
+                    </script>
+                  </section>
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### Stop Words Remover
+                      - Stop words are words that should not be considered by our models because they are common or irrelevant
+                      - Examples: "a", "an", "all", "to", "from", etc.
+                      - StopWordsRemover can be used to remove "stop words" from a column of tokens (words)
+                      - The stop words list can be overridden if passed as parameter
+                    </script>
+                  </section>
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### Stop Words Remover
+
+                      ```
+                      from pyspark.ml.feature import StopWordsRemover
+
+                      sentence_data = spark.createDataFrame([
+                        (0, ["I", "saw", "the", "red", "balloon"]),
+                        (1, ["Mary", "had", "a", "little", "lamb"])
+                      ], ["id", "raw"])
+
+                      remover = StopWordsRemover(inputCol="raw", outputCol="filtered")
+                      remover.transform(sentence_data).show()
+                      ```
+                      ```
+                      +---+--------------------+--------------------+
+                      | id|                 raw|            filtered|
+                      +---+--------------------+--------------------+
+                      |  0|[I, saw, the, red...| [saw, red, balloon]|
+                      |  1|[Mary, had, a, li...|[Mary, little, lamb]|
+                      +---+--------------------+--------------------+
+                      ```
+                    </script>
+                  </section>
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### Binarizer
+                      - Can be used to convert numeric features into a binary value (0 or 1), based on a threshold
+                    </script>
+                  </section>
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### Binarizer
+                      ```python
+                      from pyspark.ml.feature import Binarizer
+
+                      continuous_df = spark.createDataFrame([
+                        (0, 0.1),
+                        (1, 0.8),
+                        (2, 0.2)
+                      ], ["id", "feature"])
+
+                      binarizer = Binarizer(threshold=0.5, inputCol="feature",
+                          outputCol="binarized_feature")
+
+                      binarized = binarizer.transform(continuous_df)
+                      binarized.show()
+                      ```
+                      ```
+                      +---+-------+-----------------+
+                      | id|feature|binarized_feature|
+                      +---+-------+-----------------+
+                      |  0|    0.1|              0.0|
+                      |  1|    0.8|              1.0|
+                      |  2|    0.2|              0.0|
+                      +---+-------+-----------------+
+                      ```
+                    </script>
+                  </section>
+
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### String Indexer
+                      - Can be used to find numeric indexes for strings
+                    </script>
+                  </section>
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### String Indexer
+                      ```python
+                      from pyspark.ml.feature import StringIndexer
+
+                      df = spark.createDataFrame(
+                      [(0, "a"), (1, "b"), (2, "c"), (3, "a"), (4, "a"), (5, "c")],
+                      ["id", "category"])
+
+                      indexer = StringIndexer(inputCol="category",
+                        outputCol="categoryIndex")
+                      indexed = indexer.fit(df).transform(df)
+                      indexed.show()
+
+                      ```
+                      ```
+                      +---+--------+-------------+
+                      | id|category|categoryIndex|
+                      +---+--------+-------------+
+                      |  0|       a|          0.0|
+                      |  1|       b|          2.0|
+                      |  2|       c|          1.0|
+                      |  3|       a|          0.0|
+                      |  4|       a|          0.0|
+                      |  5|       c|          1.0|
+                      +---+--------+-------------+
+                      ```
+                    </script>
+                  </section>
+
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### Bucketizer
+                      - Can be used to transform a continuous column into bucket indexes
+                      - A vector of bucket splits must be defined and passed as parameter
+                    </script>
+                  </section>
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### Bucketizer
+                      ```python
+                      from pyspark.ml.feature import Bucketizer
+
+                      splits = [-float("inf"), -0.5, 0.0, 0.5, float("inf")]
+
+                      data = [(-999.9,), (-0.5,), (-0.3,), (0.0,), (0.2,), (999.9,)]
+                      df = spark.createDataFrame(data, ["features"])
+
+                      bucketizer = Bucketizer(splits=splits, inputCol="features",
+                        outputCol="bucketedFeatures")
+
+                      bucketed_data = bucketizer.transform(df)
+                      bucketed_data.show()
+                      ```
+
+                      ```
+                      +--------+----------------+
+                      |features|bucketedFeatures|
+                      +--------+----------------+
+                      |  -999.9|             0.0|
+                      |    -0.5|             1.0|
+                      |    -0.3|             1.0|
+                      |     0.0|             2.0|
+                      |     0.2|             2.0|
+                      |   999.9|             3.0|
+                      +--------+----------------+
+                      ```
+                    </script>
+                  </section>
+
+                </section>
+
+              <section>
+                <section data-markdown data-separator-notes="^Note:">
+                  <script type="text/template">
+                    ## Wrap-up
+                    - There are two APIs for Machine Learning in Spark: RDD and DataFrame
+                    - It's important to know an overview of both
+                    - But the DataFrame API is the main one and should be chosen
+                  </script>
+                </section>
+
+
+                <section data-markdown data-separator-notes="^Note:">
+                  <script type="text/template">
+                    ## Wrap-up
+                    - It's not necessary to memorize all existing Transformers, Estimators, Params, etc
+                    - But it's very important to know where to look and how to find
+                    - Two main resources:
+                      - [Guide with explanations and examples](https://spark.apache.org/docs/latest/ml-guide.html)
+                      - [pyspark docs for DataFrame API](https://spark.apache.org/docs/latest/api/python/pyspark.ml.html)
+                      - [pyspark docs for RDD API](https://spark.apache.org/docs/latest/api/python/pyspark.mllib.html)
+                  </script>
+                </section>
+              </section>
+
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        # (: !DNE EHT
+
+                        ## Any questions?
+
+                    </script>
+                </section>
+            </div>
+        </div>
+
+        <script src="../reveal.js/lib/js/head.min.js"></script>
+        <script src="../reveal.js/js/reveal.js"></script>
+        <script src="../js/init-reveal.js"></script>
+    </body>
+</html>

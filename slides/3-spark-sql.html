@@ -1,0 +1,1572 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="description" content="Introduction to Apache Spark">
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+        <title>3. Spark SQL and DataFrames</title>
+
+        <link rel="stylesheet" href="../reveal.js/css/reveal.css">
+        <link rel="stylesheet" href="../reveal.js/css/theme/black.css" id="theme">
+        <!-- Code syntax highlighting -->
+        <link rel="stylesheet" href="../reveal.js/lib/css/zenburn.css">
+        <!-- Printing and PDF exports -->
+        <script>
+            var link = document.createElement( 'link' );
+            link.rel = 'stylesheet';
+            link.type = 'text/css';
+            link.href = window.location.search.match( /print-pdf/gi ) ? '../reveal.js/css/print/pdf.css' : '../reveal.js/css/print/paper.css';
+            document.getElementsByTagName( 'head' )[0].appendChild( link );
+        </script>
+        <!--[if lt IE 9]>
+        <script src="lib/js/html5shiv.js"></script>
+        <![endif]-->
+        <style type="text/css">
+            p { text-align: left; }
+        </style>
+    </head>
+
+    <body>
+        <div class="reveal">
+            <div class="slides">
+                <section>
+                    <h1>Introduction to Apache Spark</h1>
+                    <br>
+                    <br>
+                    <h3>3. Spark SQL and DataFrames</h3>
+                </section>
+
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        ## Reminder: Homeworks
+
+                        - Expected by email before the following class
+                        - Submit the exported notebook (.ipynb extension)
+                        - File name should include both student name and no space (FirstName1LastName1_FirstName2LastName2.py) for instance
+
+                    </script>
+                </section>
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        ## Overview
+                        - Spark SQL is a library included in Apache Spark since version 1.3
+                        - Its main goal is to provide an easier interface to process tabular data
+                        - Instead of RDDs, we deal with DataFrames
+                        - Starting from Spark 1.6, there is also the concept of Datasets, but only for Scala and Java
+                    </script>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Contexts and SparkSession
+                            - Before Spark 2, there was only SparkContext and SQLContext
+                            - All core functionality was accessed with SparkContext
+                            - All SQL functionality needed the SQLContext, which can be created from an SparkContext
+                            - Starting from Spark 2.0, there is now the SparkSession class
+                                - SparkSession is now the global entry-point for everything Spark-related
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Contexts and SparkSession: Creating SQLContext and SparkSession
+                            ```python
+                            from pyspark import SparkConf, SparkContext
+                            from pyspark.sql import SQLContext, SparkSession
+
+                            # Before Spark 2
+                            conf = SparkConf().setAppName(appName).setMaster(master)
+                            sc = SparkContext(conf = conf)
+                            sql_context = new SQLContext(sc)
+
+                            # Since Spark 2.0
+                            spark = SparkSession \
+                                .builder \
+                                .appName(appName) \
+                                .master(master)
+                                .config("spark.some.config.option", "some-value") \
+                                .getOrCreate()
+                            ```
+                        </script>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## DataFrame
+                            - The main entity of Spark SQL is the DataFrame
+                            - A DataFrame is actually an RDD of Rows with a Schema definition
+                            - The schema defines the names of the columns and their types
+                            - Row is a class representing a row of the DataFrame.
+                                - It can be used almost as a List, with its size equal to the number of columns in the schema.
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Examples
+
+                            ```python
+                            >>> from pyspark.sql import Row
+                            >>> row1 = Row(name="John", age=21)
+                            >>> row2 = Row(name="James", age=32)
+                            >>> row3 = Row(name="Jane", age=18)
+                            >>> row1['name']
+                            'John'
+
+                            ```
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Examples
+
+                            ```python
+                            >>> df = spark.createDataFrame([row1, row2, row3])
+                            >>> df.printSchema()
+                            >>> df.show()
+                            ```
+
+                            ```
+                            root
+                            |-- name: string (nullable = true)
+                            |-- age: long (nullable = true)
+
+                            +-----+---+
+                            | name|age|
+                            +-----+---+
+                            | John| 21|
+                            |James| 32|
+                            | Jane| 18|
+                            +-----+---+
+                            ```
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Examples
+
+                            ```python
+                            >>> print(df.rdd.toDebugString())
+                            ```
+
+                            ```
+                            (8) MapPartitionsRDD[209] at javaToPython at NativeMethodAccessorImpl.java:0 []
+                            |  MapPartitionsRDD[208] at javaToPython at NativeMethodAccessorImpl.java:0 []
+                            |  MapPartitionsRDD[207] at javaToPython at NativeMethodAccessorImpl.java:0 []
+                            |  MapPartitionsRDD[204] at applySchemaToPythonRDD at NativeMethodAccessorImpl.java:0 []
+                            |  MapPartitionsRDD[203] at map at SerDeUtil.scala:123 []
+                            |  MapPartitionsRDD[202] at mapPartitions at SerDeUtil.scala:170 []
+                            |  PythonRDD[201] at RDD at PythonRDD.scala:48 []
+                            |  ParallelCollectionRDD[200] at parallelize at PythonRDD.scala:480 []
+                            ```
+                        </script>
+                    </section>
+                </section>
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ### Creating DataFrames
+                            - We can use the method `createDataFrame` present in the SparkSession instance (or SQLContext)
+                            - This method can be used to create a Spark DataFrame from:
+                                - a `pandas.DataFrame` object
+                                - a local python list
+                                - an RDD
+                            - The full documentation and parameters can be found in the [API docs](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.SparkSession.createDataFrame)
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ###Creating DataFrames
+
+                            ```python
+                            >>> rows = [
+                                Row(name="John", age=21, gender="male"),
+                                Row(name="James", age=25, gender="female"),
+                                Row(name="Albert", age=46, gender="male")
+                            ]
+                            >>> df = spark.createDataFrame(rows)
+                            >>> df.show()
+                            ```
+                            ```
+                            +---+------+------+
+                            |age|gender|  name|
+                            +---+------+------+
+                            | 21|  male|  John|
+                            | 25|female| James|
+                            | 46|  male|Albert|
+                            +---+------+------+
+                            ```
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Creating DataFrames
+
+                            ```python
+                            >>> column_names = ["name", "age", "gender"]
+                            >>> rows = [
+                                ["John", 21, "male"],
+                                ["James", 25, "female"],
+                                ["Albert", 46, "male"]
+                            ]
+                            >>> df = spark.createDataFrame(rows, column_names)
+                            >>> df.show()
+                            ```
+                            ```
+                            +------+---+------+
+                            |  name|age|gender|
+                            +------+---+------+
+                            |  John| 21|  male|
+                            | James| 25|female|
+                            |Albert| 46|  male|
+                            +------+---+------+
+                            ```
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Creating DataFrames
+
+                            ```python
+                            >>> column_names = ["name", "age", "gender"]
+                            >>> rdd = sc.parallelize([
+                                ("John", 21, "male"),
+                                ("James", 25, "female"),
+                                ("Albert", 46, "male")
+                            ])
+                            >>> df = spark.createDataFrame(rdd, column_names)
+                            >>> df.show()
+                            ```
+                            ```
+                            +------+---+------+
+                            |  name|age|gender|
+                            +------+---+------+
+                            |  John| 21|  male|
+                            | James| 25|female|
+                            |Albert| 46|  male|
+                            +------+---+------+
+                            ```
+                        </script>
+                    </section>
+                </section>
+
+
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Schema and Types
+                            - A DataFrame always contains a schema
+                            - The schema defines the column names and types
+                            - The schema of a DataFrame is represented by the class `types.StructType` ([docs](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.types.StructType))
+                            - When creating a DataFrame, the schema can be either inferred or defined by the user
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Creating a custom Schema
+                            ```python
+                            from pyspark.sql.types import *
+                            schema = StructType([
+                                StructField("name", StringType(), True),
+                                StructField("age", IntegerType(), True),
+                                StructField("gender", StringType(), True)
+                            ])
+                            rows = [("John", 21, "male")]
+                            df = spark.createDataFrame(rows, schema)
+
+                            df.printSchema()
+                            df.show()
+                            ```
+
+                            ```python
+                            root
+                            |-- name: string (nullable = true)
+                            |-- age: integer (nullable = true)
+                            |-- gender: string (nullable = true)
+
+                            +----+---+------+
+                            |name|age|gender|
+                            +----+---+------+
+                            |John| 21|  male|
+                            +----+---+------+
+                            ```
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        ## Types Supported by Spark SQL
+
+                        - StringType
+                        - IntegerType
+                        - LongType
+                        - FloatType
+                        - DoubleType
+                        - BooleanType
+                        - DateType
+                        - TimestampType
+                        - The full list of types can be found in the [Spark Docs](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-types)
+
+                        </script>
+                    </section>
+                </section>
+
+
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Reading Data from Sources
+                            - In real use-cases, data is usually read from external sources
+                            - Spark SQL provides connectors to read from many different sources:
+                                - Text files (csv, json)
+                                - Distributed tabular files (Parquet, ORC)
+                                - General relational Databases (via JDBC)
+                            - It's also possible to use specific connectors (using third-party libraries) to many other databases
+                            - And one could also create their own connector for Spark (in Scala)
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Reading Data from Sources
+                            - In all cases, the syntax is similar: `spark.read.{source}(path)`
+                            - Spark supports different file systems to look for the data:
+                                - Local files: "file://"
+                                - HDFS (hadoop filesystem): "hdfs://"
+                                - Amazon S3: "s3://"
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Reading From CSV
+
+                            ```python
+                            df = spark.read.csv("/path/to/file.csv")
+                            ```
+
+                            ```python
+                            path = "/path/to/file.csv"
+                            df = spark.read.option("header", "true").csv(path)
+                            ```
+
+
+                            ```python
+                            df = spark.read\
+                                      .format("csv")\
+                                      .option("header", "true")\
+                                      .option("sep", ";")\
+                                      .load("/path/to/file.csv")
+                            ```
+
+                            ```python
+                            df = spark.read.csv(path, sep=";", header=True)
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Reading From CSV - Main Options
+
+                            - Some important options of the CSV reader are listed here:
+
+                            | option | description |
+                            | :- | :- |
+                            | `sep` | The separator character |
+                            | `header` | If "true", the first line contains the column names |
+                            | `inferSchema` | If "true", the column types will be guessed from the contents |
+                            | `dateFormat` | A string representing the format of the date columns |
+
+                            - The full list of options can be found in the [API Docs](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrameReader.csv)
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Reading From other file types
+
+                            ```python
+                            # JSON file
+                            df = spark.read.json("/path/to/file.json")
+                            df = spark.read.format("json").load("/path/to/file.json")
+                            ```
+
+                            ```python
+                            # Parquet file (distributed tabular data)
+                            df = spark.read.parquet("hdfs:///path/to/file.parquet")
+                            df = spark.read.format("parquet").load("hdfs:///path/to/file.parquet")
+                            ```
+
+                            ```python
+                            # ORC file (distributed tabular data)
+                            df = spark.read.orc("hdfs://path/to/file.orc")
+                            df = spark.read.format("orc").load("hdfs://path/to/file.orc")
+                            ```
+
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Reading From External Databases
+                            - We can use JDBC drivers (Java) to read from relational Databases
+                                - Examples of databases: Oracle, PostgreSQL, MySQL, etc.
+                            - The java driver file must be uploaded to the cluster before trying to access
+                            - This operation can be very heavy. When available, specific connectors should be used
+                                - Specific connectors are often provided by third-party libraries
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Reading From External Databases
+                            ```python
+                            df = spark.read.format("jdbc") \
+                                .option("url", "jdbc:postgresql:dbserver") \
+                                .option("dbtable", "schema.tablename") \
+                                .option("user", "username") \
+                                .option("password", "p4ssw0rd") \
+                                .load()
+                            # or
+                            df = spark.read.jdbc(
+                                url="jdbc:postgresql:dbserver",
+                                table="schema.tablename"
+                                properties={
+                                    "user": "username",
+                                    "password": "p4ssw0rd"
+                                }
+                            )
+                            ```
+                        </script>
+                    </section>
+
+                </section>
+                <section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Performing queries
+                            - Spark SQL was created to be compatible with SQL queries
+                            - So it supports actual SQL queries to be performed on DataFrames
+                            - First, the DataFrame must be tagged as a temporary view
+                            - Then, the queries can be applied using `spark.sql`
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Performing queries
+
+                            ```python
+                            column_names = ["name", "age", "gender"]
+                            rows = [
+                                ["John", 21, "male"],
+                                ["Jane", 25, "female"]
+                            ]
+                            df = spark.createDataFrame(rows, column_names)
+
+                            # Create a temporary view from the DataFrame
+                            df.createOrReplaceTempView("new_view")
+
+                            # Apply the query
+                            query = "SELECT name, age FROM new_view WHERE gender='male'"
+                            men_df = spark.sql(query)
+                            men_df.show()
+
+                            ```
+                            ```python
+                            +----+---+
+                            |name|age|
+                            +----+---+
+                            |John| 21|
+                            +----+---+
+                            ```
+                        </script>
+                    </section>
+
+                </section>
+                <section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Using the API
+                            - Although allowing SQL queries is a very powerful feature, it's not the best way to code a complex logic
+                            - Errors are harder to find in Strings
+                            - Using queries makes the code less modularizable
+                            - So Spark SQL provides a full API with SQL-like operations
+                            - It's the best way to code complex logic when using Spark SQL
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Basic Operations
+
+                            | operation | description |
+                            | :- | :- |
+                            | `select` | Chooses columns from the table |
+                            | `where` | Filters rows based on a boolean rule |
+                            | `limit` | Limits the number of rows |
+                            | `orderBy` | Sorts the DataFrame based on one or more columns |
+                            | `alias` | Changes the name of a column |
+                            | `cast` | Changes the type of a column |
+                            | `withColumn` | Adds a new column |
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## SELECT
+
+                            ```python
+                            # In a SQL query:
+                            query = "SELECT name, age FROM table"
+
+                            # Using Spark SQL API:
+                            df.select("name", "age").show()
+
+                            +-----+---+
+                            | name|age|
+                            +-----+---+
+                            | John| 21|
+                            | Jane| 25|
+                            +-----+---+
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## WHERE
+
+                            ```python
+                            # In a SQL query:
+                            query = "SELECT * FROM table WHERE age > 21"
+
+                            # Using Spark SQL API:
+                            df.where("age > 21").show()
+
+                            # alternatively:
+                            df.where(df['age'] > 21).show()
+                            df.where(df.age > 21).show()
+                            df.select("*").where("age > 21").show()
+
+                            +----+---+------+
+                            |name|age|gender|
+                            +----+---+------+
+                            |Jane| 25|female|
+                            +----+---+------+
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## LIMIT
+
+                            ```python
+                            # In a SQL query:
+                            query = "SELECT * FROM table LIMIT 1"
+
+                            # Using Spark SQL API:
+                            df.limit(1).show()
+                            # or
+                            df.select("*").limit(1).show()
+
+                            # Note: The result is not deterministic!
+
+                            +----+---+------+
+                            |name|age|gender|
+                            +----+---+------+
+                            |Jane| 25|female|
+                            +----+---+------+
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## ORDER BY
+
+                            ```python
+                            # In a SQL query:
+                            query = "SELECT * FROM table ORDER BY name ASC"
+
+                            # Using Spark SQL API:
+                            df.orderBy(df.name.asc()).show()
+
+                            +----+---+------+
+                            |name|age|gender|
+                            +----+---+------+
+                            |Jane| 25|female|
+                            |John| 21|  male|
+                            +----+---+------+
+                            ```
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## ALIAS (name change)
+
+                            ```python
+                            # In a SQL query:
+                            query = "SELECT name, age, gender AS sex FROM table"
+
+                            # Using Spark SQL API:
+                            df.select(df.name, df.age, df.gender.alias('sex')).show()
+
+                            +----+---+------+
+                            |name|age|   sex|
+                            +----+---+------+
+                            |John| 21|  male|
+                            |Jane| 25|female|
+                            +----+---+------+
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## CAST (type change)
+
+                            ```python
+                            # In a SQL query:
+                            query = "SELECT name, cast(age AS float) AS age_f FROM table"
+
+                            # Using Spark SQL API:
+                            df.select(df.name, df.age.cast("float").alias("age_f")).show()
+
+                            # or
+                            new_age_col = df.age.cast("float").alias("age_f")
+                            df.select(df.name, new_age_col).show()
+
+                            +----+-----+
+                            |name|age_f|
+                            +----+-----+
+                            |John| 21.0|
+                            |Jane| 25.0|
+                            +----+-----+
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Adding new columns
+
+                            ```python
+                            # In a SQL query:
+                            query = "SELECT *, 12*age AS age_months FROM table"
+
+                            # Using Spark SQL API:
+                            df.withColumn("age_months", df.age * 12).show()
+                            # or
+                            df.select("*", (df.age * 12).alias("age_months")).show()
+
+                            # Note: Using withColumn is preferable
+
+                            +----+---+------+----------+
+                            |name|age|gender|(age * 12)|
+                            +----+---+------+----------+
+                            |John| 21|  male|       252|
+                            |Jane| 25|female|       300|
+                            +----+---+------+----------+
+                            ```
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Basic Operations
+
+                            - The full list of operations that can be applied to a DataFrame can be found in the [DataFrame docs](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame)
+                            - The list of operations on columns can be found in the [Column docs](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.Column)
+                        </script>
+                    </section>
+
+                </section>
+                <section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Column Functions
+
+                            - Most of the time we need to make many transformations use one or more functions
+                            - Spark SQL has a package called `functions` with many functions available for that
+                            - Some of those functions are only for aggregations
+                                - For example:  `avg`, `sum`, etc
+                                - We will cover them later
+                            - Some others are for column transformation or operations
+                                - examples:  `substr`, `concat`, `datediff`, `floor`, etc.
+                            - The full list with descriptions is, as usual, in the [API docs](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#module-pyspark.sql.functions)
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Column Functions
+
+                            - To use these functions, we first need to import them:
+
+                            ```python
+                            from pyspark.sql import functions as fn
+                            ```
+
+                            Note: The "`as fn`" part is important to avoid confusion with native functions such as "sum"
+
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Numeric Functions Examples
+
+                            ```python
+                            from pyspark.sql import functions as fn
+
+                            df = spark.createDataFrame([
+                                ("garnier", 3.49),
+                                ("elseve", 2.71)
+                            ], ["brand", "cost"])
+
+                            round_cost = fn.round(df.cost, 1)
+                            floor_cost = fn.floor(df.cost)
+                            ceil_cost = fn.ceil(df.cost)
+
+                            df.withColumn('round', round_cost)\
+                              .withColumn('floor', floor_cost)\
+                              .withColumn('ceil', ceil_cost)\
+                              .show()
+
+                            ```
+                            ```python
+                            +-------+----+-----+-----+----+
+                            |  brand|cost|round|floor|ceil|
+                            +-------+----+-----+-----+----+
+                            |garnier|3.49|  3.5|    3|   4|
+                            | elseve|2.71|  2.7|    2|   3|
+                            +-------+----+-----+-----+----+
+                            ```
+
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## String Functions Examples
+
+                            ```python
+                            from pyspark.sql import functions as fn
+
+                            df = spark.createDataFrame([
+                                ("John", "Doe"),
+                                ("Mary", "Jane")
+                            ], ["first_name", "last_name"])
+
+                            last_name_initial = fn.substring(df.last_name, 0, 1)
+                            name = fn.concat_ws(" ", df.first_name, last_name_initial)
+
+                            df.withColumn("name", name).show()
+
+                            ```
+                            ```python
+                            +----------+---------+------+
+                            |first_name|last_name|  name|
+                            +----------+---------+------+
+                            |      John|      Doe|John D|
+                            |      Mary|     Jane|Mary J|
+                            +----------+---------+------+
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Date Functions Examples
+
+                            ```python
+                            from datetime import date
+                            from pyspark.sql import functions as fn
+
+                            df = spark.createDataFrame([
+                                (date(2015, 1, 1), date(2015, 1, 15)),
+                                (date(2015, 2, 21), date(2015, 3, 8)),
+                            ], ["start_date", "end_date"])
+
+                            days_between = fn.datediff(df.end_date, df.start_date)
+
+                            start_month = fn.month(df.start_date)
+
+                            df.withColumn('days_between', days_between)\
+                              .withColumn('start_month', start_month)\
+                              .show()
+
+                            ```
+                            ```python
+                            +----------+----------+------------+-----------+
+                            |start_date|  end_date|days_between|start_month|
+                            +----------+----------+------------+-----------+
+                            |2015-01-01|2015-01-15|          14|          1|
+                            |2015-02-21|2015-03-08|          15|          2|
+                            +----------+----------+------------+-----------+
+                            ```
+                        </script>
+                    </section>
+                </section>
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Conditional Transformations
+                            - In the functions package there is a special function called `when`
+                            - This function is used to create a new column which value depends on the value of other columns
+                            - `otherwise` is used to match "the rest"
+                            - Combination between conditions can be done using "&" for "and" and "|" for "or"
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Examples
+                            ```python
+                            df = spark.createDataFrame([
+                                ("John", 21, "male"),
+                                ("Jane", 25, "female"),
+                                ("Albert", 46, "male"),
+                                ("Brad", 49, "super-hero")
+                            ], ["name", "age", "gender"])
+
+                            supervisor = fn.when(df.gender == 'male', 'Mr. Smith')\
+                                           .when(df.gender == 'female', 'Miss Jones')\
+                                           .otherwise('NA')
+
+                            df.withColumn("supervisor", supervisor).show()
+                            ```
+                            ```python
+                            +------+---+----------+----------+
+                            |  name|age|    gender|supervisor|
+                            +------+---+----------+----------+
+                            |  John| 21|      male| Mr. Smith|
+                            |  Jane| 25|    female|Miss Jones|
+                            |Albert| 46|      male| Mr. Smith|
+                            |  Brad| 49|super-hero|        NA|
+                            +------+---+----------+----------+
+                            ```
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Examples
+                            ```python
+                            df = spark.createDataFrame([
+                                ("John", 21, "male"),
+                                ("Jane", 25, "female"),
+                                ("Albert", 46, "male"),
+                                ("Brad", 49, "super-hero")
+                            ], ["name", "age", "gender"])
+
+                            supervisor = fn.when(df.gender == 'male', 'Mr. Smith')\
+                            .when(df.gender == 'female', 'Miss Jones')\
+                            .otherwise('NA')
+
+                            df.withColumn("supervisor", supervisor).show()
+                            ```
+                            ```python
+                            +------+---+----------+----------+
+                            |  name|age|    gender|supervisor|
+                            +------+---+----------+----------+
+                            |  John| 21|      male| Mr. Smith|
+                            |  Jane| 25|    female|Miss Jones|
+                            |Albert| 46|      male| Mr. Smith|
+                            |  Brad| 49|super-hero|        NA|
+                            +------+---+----------+----------+
+                            ```
+                        </script>
+                    </section>
+
+                </section>
+                <section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## User Defined Functions
+                            - When you need a transformation that is not available in the functions package, you can create an User Defined Function
+                            - The performance of this feature can be very low
+                            - So, it should be used only when you are sure the operation cannot be done with the available functions
+                            - To create an UDF, you use `functions.udf`, passing a lambda or a named functions
+                            - It is similar to the `map` operation of RDDs
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Example
+
+                            ```python
+                            from pyspark.sql import functions as fn
+                            from pyspark.sql.types import StringType
+
+                            df = spark.createDataFrame([(1, 3), (4, 2)], ["first", "second"])
+
+                            def my_func(col_1, col_2):
+                                if (col_1 > col_2):
+                                    return "{} is bigger than {}".format(col_1, col_2)
+                                else:
+                                    return "{} is bigger than {}".format(col_2, col_1)
+
+                            my_udf = fn.udf(my_func, StringType())
+
+                            df.withColumn("udf", my_udf(df['first'], df['second'])).show()
+                            ```
+                            ```
+                            +-----+------+------------------+
+                            |first|second|               udf|
+                            +-----+------+------------------+
+                            |    1|     3|3 is bigger than 1|
+                            |    4|     2|4 is bigger than 2|
+                            +-----+------+------------------+
+                            ```
+
+                        </script>
+                    </section>
+
+                </section>
+                <section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Performing Joins
+                            - Spark SQL supports joins between 2 DataFrames
+                            - As in normal SQL, a join rule must be defined
+                                - The rule can either be a set of join keys, or a conditional rule
+                                - Join with conditional rules in Spark can be very heavy
+                            - Many types of joins are available:
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Examples
+
+                            ```python
+                            from datetime import date
+
+                            products = spark.createDataFrame([
+                                ('1', 'mouse', 'microsoft', 39.99),
+                                ('2', 'keyboard', 'logitech', 59.99),
+                            ], ['prod_id', 'prod_cat', 'prod_brand', 'prod_value'])
+
+                            purchases = spark.createDataFrame([
+                                (date(2017, 11, 1), 2, '1'),
+                                (date(2017, 11, 2), 1, '1'),
+                                (date(2017, 11, 5), 1, '2'),
+                            ], ['date', 'quantity', 'prod_id'])
+
+                            # The default join type is the "INNER" join
+                            purchases.join(products, 'prod_id').show()
+                            ```
+                            ```
+                            +-------+----------+--------+--------+----------+----------+
+                            |prod_id|      date|quantity|prod_cat|prod_brand|prod_value|
+                            +-------+----------+--------+--------+----------+----------+
+                            |      1|2017-11-01|       2|   mouse| microsoft|     39.99|
+                            |      1|2017-11-02|       1|   mouse| microsoft|     39.99|
+                            |      2|2017-11-05|       1|keyboard|  logitech|     59.99|
+                            +-------+----------+--------+--------+----------+----------+
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Examples
+
+                            ```python
+
+                            # We can also use a query string (not usually recommended)
+                            products.createOrReplaceTempView("products")
+                            purchases.createOrReplaceTempView("purchases")
+                            query = """SELECT * FROM
+                                (purchases AS prc INNER JOIN products AS prd on prc.prod_id = prd.prod_id)"""
+                            spark.sql(query).show()
+                            ```
+                            ```
+                            +----------+--------+-------+-------+--------+----------+----------+
+                            |      date|quantity|prod_id|prod_id|prod_cat|prod_brand|prod_value|
+                            +----------+--------+-------+-------+--------+----------+----------+
+                            |2017-11-01|       2|      1|      1|   mouse| microsoft|     39.99|
+                            |2017-11-02|       1|      1|      1|   mouse| microsoft|     39.99|
+                            |2017-11-05|       1|      2|      2|keyboard|  logitech|     59.99|
+                            +----------+--------+-------+-------+--------+----------+----------+
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Examples
+
+                            ```python
+                            new_purchases = spark.createDataFrame([
+                                (date(2017, 11, 1), 2, '1'),
+                                (date(2017, 11, 2), 1, '3'),
+                            ], ['date', 'quantity', 'prod_id_x'])
+
+                            # The default join type is the "INNER" join
+                            join_rule = new_purchases.prod_id_x == products.prod_id
+                            new_purchases.join(products, join_rule, 'left').show()
+                            ```
+                            ```
+                            +----------+--------+---------+-------+--------+----------+----------+
+                            |      date|quantity|prod_id_x|prod_id|prod_cat|prod_brand|prod_value|
+                            +----------+--------+---------+-------+--------+----------+----------+
+                            |2017-11-02|       1|        3|   null|    null|      null|      null|
+                            |2017-11-01|       2|        1|      1|   mouse| microsoft|     39.99|
+                            +----------+--------+---------+-------+--------+----------+----------+
+                            ```
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Join Types
+
+                            | SQL Join Type | In Spark                |
+                            |---------------|-------------------------|
+                            | CROSS         | cross                   |
+                            | INNER         | inner                   |
+                            | FULL OUTER    | outer, full, fullouter+ |
+                            | LEFT ANTI     | leftanti                |
+                            | LEFT OUTER    | leftouter, left         |
+                            | LEFT SEMI     | leftsemi                |
+                            | RIGHT OUTER   | rightouter, right       |
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Join Types
+
+                            <p style="text-align: center"><img src="http://kirillpavlov.com/images/join-types.png" align="middle"/></p>
+                        </script>
+                    </section>
+                </section>
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Performing Aggregations
+
+                            - Maybe the most used operations in SQL and Spark SQL
+                            - Similar to SQL, we use "group by" to perform aggregations
+                            - For simple aggregations, we can call the function just after `groupBy`
+                            - Usually, we use `groupBy().agg()`
+                            - There are many aggregation functions in `pyspark.sql.functions`
+                            - Some examples:
+                                - Numeric: `fn.avg`, `fn.sum`, `fn.min`, `fn.max`, etc.
+                                - General: `fn.first`, `fn.last`, `fn.count`, `fn.countDistinct`, etc.
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Examples
+                            ```python
+                            products = spark.createDataFrame([
+                                ('1', 'mouse', 'microsoft', 39.99),
+                                ('2', 'mouse', 'microsoft', 59.99),
+                                ('3', 'keyboard', 'microsoft', 59.99),
+                                ('4', 'keyboard', 'logitech', 59.99),
+                                ('5', 'mouse', 'logitech', 29.99),
+                            ], ['prod_id', 'prod_cat', 'prod_brand', 'prod_value'])
+
+                            products.groupBy('prod_cat').avg('prod_value').show()
+                            #or
+                            from pyspark.sql import functions as fn
+                            products.groupBy('prod_cat').agg(fn.avg('prod_value')).show()
+                            ```
+                            ```
+                            +--------+-----------------+
+                            |prod_cat|  avg(prod_value)|
+                            +--------+-----------------+
+                            |keyboard|            54.99|
+                            |   mouse|43.32333333333333|
+                            +--------+-----------------+
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Examples
+                            ```python
+                            from pyspark.sql import functions as fn
+                            products.groupBy('prod_brand', 'prod_cat')
+                                    .agg(fn.avg('prod_value')).show()
+
+                            +----------+--------+---------------+
+                            |prod_brand|prod_cat|avg(prod_value)|
+                            +----------+--------+---------------+
+                            | microsoft|   mouse|          49.99|
+                            |  logitech|keyboard|          49.99|
+                            | microsoft|keyboard|          59.99|
+                            |  logitech|   mouse|          29.99|
+                            +----------+--------+---------------+
+                            ```
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Examples
+                            ```python
+                            from pyspark.sql import functions as fn
+                            products.groupBy('prod_brand').agg(
+                                fn.round(fn.avg('prod_value'), 1).alias('average'),
+                                fn.ceil(fn.sum('prod_value')).alias('sum'),
+                                fn.min('prod_value').alias('min')
+                            ).show()
+
+                            +----------+-------+---+-----+
+                            |prod_brand|average|sum|  min|
+                            +----------+-------+---+-----+
+                            |  logitech|   40.0| 80|29.99|
+                            | microsoft|   53.3|160|39.99|
+                            +----------+-------+---+-----+
+                            ```
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Examples
+                            ```python
+                            # Using SQL query
+                            products.createOrReplaceTempView("products")
+                            query = """
+                                SELECT
+                                    prod_brand,
+                                    round(avg(prod_value), 1) AS average,
+                                    min(prod_value) AS min
+                                FROM products
+                                GROUP BY prod_brand
+                            """
+                            spark.sql(query).show()
+                            ```
+                            ```
+                            +----------+-------+-----+
+                            |prod_brand|average|  min|
+                            +----------+-------+-----+
+                            |  logitech|   40.0|29.99|
+                            | microsoft|   53.3|39.99|
+                            +----------+-------+-----+
+                            ```
+                        </script>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Window Functions
+                            - A very, very powerful feature
+                            - They allow to solve very complex problems
+                            - They exist in some relational databases
+                            - There's a very good article about this feature [here](https://databricks.com/blog/2015/07/15/introducing-window-functions-in-spark-sql.html)
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Window Functions
+                            - It's similar to aggregations, but the number of rows doesn't change
+                            - Instead, new columns are created, and the aggregated values are duplicated for values of the same "group"
+                            - There are "tradictional" aggregations, such as min, max, avg, sum
+                                - and "special" types, such as "lag", "lead", "rank"
+                            - Examples are worth more than 1000 words
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Numeric Window Functions
+                            ```python
+                            from pyspark.sql import Window
+                            from pyspark.sql import functions as fn
+
+                            # First, we create the Window definition
+                            window = Window.partitionBy('prod_brand')
+
+                            # Then, we can use "over" to aggregate on this window
+                            avg = fn.avg('prod_value').over(window)
+
+                            # Finally, we can use this as usualusual
+                            products.withColumn('avg_brand_value', fn.round(avg, 2)).show()
+                            ```
+                            ```
+                            +-------+--------+----------+----------+---------------+
+                            |prod_id|prod_cat|prod_brand|prod_value|avg_brand_value|
+                            +-------+--------+----------+----------+---------------+
+                            |      4|keyboard|  logitech|     49.99|          39.99|
+                            |      5|   mouse|  logitech|     29.99|          39.99|
+                            |      1|   mouse| microsoft|     39.99|          53.32|
+                            |      2|   mouse| microsoft|     59.99|          53.32|
+                            |      3|keyboard| microsoft|     59.99|          53.32|
+                            +-------+--------+----------+----------+---------------+
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Numeric Window Functions
+                            ```python
+                            from pyspark.sql import Window
+                            from pyspark.sql import functions as fn
+
+                            # The window can be defined on multiple columns
+                            window = Window.partitionBy('prod_brand', 'prod_cat')
+
+                            avg = fn.avg('prod_value').over(window)
+
+                            products.withColumn('avg_value', fn.round(avg, 2)).show()
+                            ```
+                            ```
+                            +-------+--------+----------+----------+---------+
+                            |prod_id|prod_cat|prod_brand|prod_value|avg_value|
+                            +-------+--------+----------+----------+---------+
+                            |      1|   mouse| microsoft|     39.99|    49.99|
+                            |      2|   mouse| microsoft|     59.99|    49.99|
+                            |      4|keyboard|  logitech|     49.99|    49.99|
+                            |      3|keyboard| microsoft|     59.99|    59.99|
+                            |      5|   mouse|  logitech|     29.99|    29.99|
+                            +-------+--------+----------+----------+---------+
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Numeric Window Functions
+                            ```python
+                            from pyspark.sql import Window
+                            from pyspark.sql import functions as fn
+
+                            # Multiple windows can be defined
+                            window1 = Window.partitionBy('prod_brand')
+                            window2 = Window.partitionBy('prod_cat')
+
+                            avg_brand = fn.avg('prod_value').over(window1)
+                            avg_cat = fn.avg('prod_value').over(window2)
+
+                            products\
+                                .withColumn('avg_by_brand', fn.round(avg_brand, 2))\
+                                .withColumn('avg_by_cat', fn.round(avg_cat, 2))\
+                                .show()
+                            ```
+                            ```
+                            +-------+--------+----------+----------+------------+----------+
+                            |prod_id|prod_cat|prod_brand|prod_value|avg_by_brand|avg_by_cat|
+                            +-------+--------+----------+----------+------------+----------+
+                            |      4|keyboard|  logitech|     49.99|       39.99|     54.99|
+                            |      3|keyboard| microsoft|     59.99|       53.32|     54.99|
+                            |      5|   mouse|  logitech|     29.99|       39.99|     43.32|
+                            |      1|   mouse| microsoft|     39.99|       53.32|     43.32|
+                            |      2|   mouse| microsoft|     59.99|       53.32|     43.32|
+                            +-------+--------+----------+----------+------------+----------+
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Lag and Lead
+                            - Lag and Lead are special functions used over an ordered window
+                            - They are used to take the "previous" and "next" value within the window
+                            - Very useful in datasets with a date column
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Lag and Lead
+                            ```python
+                            purchases = spark.createDataFrame([
+                                (date(2017, 11, 1), 'mouse'),
+                                (date(2017, 11, 2), 'mouse'),
+                                (date(2017, 11, 4), 'keyboard'),
+                                (date(2017, 11, 6), 'keyboard'),
+                                (date(2017, 11, 9), 'keyboard'),
+                                (date(2017, 11, 12), 'mouse'),
+                                (date(2017, 11, 18), 'keyboard')
+                            ], ['date', 'prod_cat'])
+
+                            purchases.show()
+                            ```
+                            ```
+                            +----------+--------+
+                            |      date|prod_cat|
+                            +----------+--------+
+                            |2017-11-01|   mouse|
+                            |2017-11-02|   mouse|
+                            |2017-11-04|keyboard|
+                            |2017-11-06|keyboard|
+                            |2017-11-09|keyboard|
+                            |2017-11-12|   mouse|
+                            |2017-11-18|keyboard|
+                            +----------+--------+
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Lag and Lead
+                            ```python
+                            window = Window.partitionBy('prod_cat').orderBy('date')
+
+                            prev_purch = fn.lag('date', 1).over(window)
+                            next_purch = fn.lead('date', 1).over(window)
+
+                            purchases\
+                                .withColumn('prev', prev_purch)\
+                                .withColumn('next', next_purch)\
+                                .orderBy('prod_cat', 'date')\
+                                .show()
+
+                            ```
+                            ```
+                            +--------+----------+----------+----------+
+                            |prod_cat|      date|      prev|      next|
+                            +--------+----------+----------+----------+
+                            |keyboard|2017-11-04|      null|2017-11-06|
+                            |keyboard|2017-11-06|2017-11-04|2017-11-09|
+                            |keyboard|2017-11-09|2017-11-06|2017-11-18|
+                            |keyboard|2017-11-18|2017-11-09|      null|
+                            |   mouse|2017-11-01|      null|2017-11-02|
+                            |   mouse|2017-11-02|2017-11-01|2017-11-12|
+                            |   mouse|2017-11-12|2017-11-02|      null|
+                            +--------+----------+----------+----------+
+                            ```
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Rank, DenseRank and RowNumber
+                            - Another set of useful "special" functions
+                            - Also used on ordered windows
+                            - They create a rank, or an order of the items within the window
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Rank and RowNumber
+
+                            ```python
+                            contestants = spark.createDataFrame([
+                                ('veterans', 'John', 3000),
+                                ('veterans', 'Bob', 3200),
+                                ('veterans', 'Mary', 4000),
+                                ('young', 'Jane', 4000),
+                                ('young', 'April', 3100),
+                                ('young', 'Alice', 3700),
+                                ('young', 'Micheal', 4000),
+                            ], ['category', 'name', 'points'])
+
+                            contestants.show()
+                            ```
+
+                            ```
+                            +--------+-------+------+
+                            |category|   name|points|
+                            +--------+-------+------+
+                            |veterans|   John|  3000|
+                            |veterans|    Bob|  3200|
+                            |veterans|   Mary|  4000|
+                            |   young|   Jane|  4000|
+                            |   young|  April|  3100|
+                            |   young|  Alice|  3700|
+                            |   young|Micheal|  4000|
+                            +--------+-------+------+
+                            ```
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Rank and RowNumber
+
+                            ```python
+                            window = Window.partitionBy('category').orderBy(contestants.points.desc())
+
+                            rank = fn.rank().over(window)
+                            dense_rank = fn.dense_rank().over(window)
+                            row_number = fn.row_number().over(window)
+
+                            contestants\
+                                .withColumn('rank', rank)\
+                                .withColumn('dense_rank', dense_rank)\
+                                .withColumn('row_number', row_number)\
+                                .orderBy('category', fn.col('points').desc())\
+                                .show()
+                            ```
+
+                            ```
+                            +--------+-------+------+----+----------+----------+
+                            |category|   name|points|rank|dense_rank|row_number|
+                            +--------+-------+------+----+----------+----------+
+                            |veterans|   Mary|  4000|   1|         1|         1|
+                            |veterans|    Bob|  3200|   2|         2|         2|
+                            |veterans|   John|  3000|   3|         3|         3|
+                            |   young|   Jane|  4000|   1|         1|         1|
+                            |   young|Micheal|  4000|   1|         1|         2|
+                            |   young|  Alice|  3700|   3|         2|         3|
+                            |   young|  April|  3100|   4|         3|         4|
+                            +--------+-------+------+----+----------+----------+
+                            ```
+                        </script>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Writing DataFrames
+                            - Very similar to Reading
+                            - Output targets are the same
+                                - csv, json, parquet, jdbc, etc.
+                            - Instead of `df.read.{source}`,
+                                - we use `df.write.{target}`
+                        </script>
+                    </section>
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Writing DataFrames
+                            - Main option: `mode`
+                            - Possible values:
+                                - "append": Append contents of this DataFrame to existing data.
+                                - "overwrite": Overwrite existing data.
+                                - "error": Throw an exception if data already exists.
+                                - "ignore": Silently ignore this operation if data already exists.
+                        </script>
+                    </section>
+
+
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Examples
+                            ```python
+                            products.write.csv('/products.csv')
+                            products.write.mode('overwrite').parquet('/file.parquet')
+                            products.write.format('parquet').save('/file.parquet')
+                            ```
+                        </script>
+                    </section>
+                </section>
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        ## Query Planning and Optimization
+                        <p style="text-align: center"><img src="../img/query-plan.png"/></p>
+                    </script>
+                </section>
+
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        # (: !DNE EHT
+
+                        ## Any questions?
+
+                    </script>
+                </section>
+                <!--
+                Overview
+                DataFrame
+                Creating a DataFrame
+                Schema and Types
+                Reading From Sources
+                 - CSV
+                 - Parquet
+                 - JDBC
+                 - Hive
+
+                Basic Operations
+                 - select
+                 - where
+                 - column operators / cast / alias
+                 - with_column / with_column_renamed
+                 - limit
+                Column Functions
+                 - String
+                   - concat
+                   - substr
+                   - trim
+                 - Numeric
+                   - floor
+                   - ceil
+                   - round
+                 - Date
+                   - datediff
+                   - month / year / etc
+                 Conditional Transformation
+                   - when / otherwise
+
+                 User Defined Functions
+
+                 Joins
+
+                 Aggregations
+                   - groupBy
+                   - agg
+                   - aggregation functions
+
+                 Window Functions
+
+                 Writing to Files
+                -->
+            </div>
+        </div>
+
+        <script src="../reveal.js/lib/js/head.min.js"></script>
+        <script src="../reveal.js/js/reveal.js"></script>
+        <script src="../js/init-reveal.js"></script>
+    </body>
+</html>

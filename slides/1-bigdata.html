@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="description" content="Introduction to Apache Spark">
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+        <title>1. Distributed computing and Big Data</title>
+
+        <link rel="stylesheet" href="../reveal.js/css/reveal.css">
+        <link rel="stylesheet" href="../reveal.js/css/theme/black.css" id="theme">
+        <!-- Code syntax highlighting -->
+        <link rel="stylesheet" href="../reveal.js/lib/css/zenburn.css">
+        <!-- Printing and PDF exports -->
+        <script>
+            var link = document.createElement( 'link' );
+            link.rel = 'stylesheet';
+            link.type = 'text/css';
+            link.href = window.location.search.match( /print-pdf/gi ) ? '../reveal.js/css/print/pdf.css' : '../reveal.js/css/print/paper.css';
+            document.getElementsByTagName( 'head' )[0].appendChild( link );
+        </script>
+        <!--[if lt IE 9]>
+        <script src="lib/js/html5shiv.js"></script>
+        <![endif]-->
+        <style type="text/css">
+            p { text-align: left; }
+        </style>
+    </head>
+
+    <body>
+        <div class="reveal">
+            <div class="slides">
+                <section>
+                    <h1>Introduction to Apache Spark</h1>
+                    <br>
+                    <br>
+                    <h3>1. Distributed computing and Big Data</h3>
+                </section>
+
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        ## Context
+
+                        Moore's Law: computing power doubled every two years from 1975 to 2012. Nowadays, every two and a half year.
+
+                        Rapid growth of datasets: internet activity, genomics, astronomy, censor networks, etc.
+
+                        Data size trends: doubles every year according to [IDC executive summary](http://www.emc.com/leadership/digital-universe/2014iview/executive-summary.htm).
+
+                        Data grows faster than Moore's law. How do we scale the training of a statistical model?
+                    </script>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Scaling-up
+
+                            Keywords: *High Performance Computing (HPC), parallel computing*
+
+                            Scale-up means using a bigger machine. Can lead to huge performance increase for medium scale problems
+
+                            Very expensive, require specialized machines able to handle lots of processors and memory.
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            **Challenges:** side effects.
+
+                            *An expression has a side effects if it modifies some state or has an observable
+                             interaction with calling functions or the outside world.*
+
+                            Solution? Locks to limit access to resources, which ensures that only one thread is accessing a specific resource all at once.
+
+                            Some rare algorithms, such as [Hogwild!](https://www.eecs.berkeley.edu/~brecht/papers/hogwildTR.pdf), exploit side effects to improve performance.
+
+                            Does not scale at some point to very big datasets.
+
+                            Note:
+                            - Example of pseudo code with side effect (board)
+                        </script>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ### Wait... What is Big? Some figures...
+
+                            Big data examples:
+                            - facebook daily logs: 60TB
+                            - 1000 genomes project: 200TB
+                            - Google web index: 10+ PB
+
+                            Cost of 1Tb of storage: ~$35
+
+                            Time to read 1Tb from disk: 3hours (100MB/s)
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            Data is streamed from the disk to the different layers of memory.
+
+                            Problem: disks cannot be read in parallel... Use several disks.
+
+                            Limited number of disks inside one machine? Use several machines: distributed computing!
+
+                            When one machine can no longer process or even store all the data, use distributed computing.
+
+                            *Depending on the task*, distributed computing starts to be useful with 1TB datasets. Below that, a large multicore workstation or server might be able to handle it.
+
+                        </script>
+                    </section>
+                    <section data-background-iframe="http://www.eecs.berkeley.edu/~rcs/research/interactive_latency.html">
+                    </section>
+                    <section>
+                        <img src="../img/throughput_figure.png" width=80%>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Scaling-out
+
+                            Keywords: *distributed computing*
+
+                            Scale-out means using many small machines.
+
+                            Uses commodity hardware: cheap, common architecture i.e. processor + RAM + disk.
+
+                            Problem: dealing with network computation adds software complexity.
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            **Challenges:**
+                            - Scheduling: How to split the work across machines? Must consider network, data locality as moving data may be very expansive.
+                            - Reliability: How to deal with failure? Commodity (cheap) hardware fails more often. At Google, 1-5% hard drive failure per year. 0.2% DIMM failure/year.
+                            - Uneven performance of the machines: some nodes (*stragglers*) are slower than others.
+                        </script>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Performance Measures
+
+                            How to evaluate the performance of a scaling? Let $T_J$ be the time complexity of an algorithm using $J$ processing elements.
+
+                            $$\text{Efficiency} = \frac{T_1}{N T_N} \leq 1 $$
+
+                            Provides an indication of the effective utilization of all the processing units.
+
+                            $$\text{Speedup} = \frac{T_1}{T_N} \leq N $$
+
+                            Measures the benefits of using parallelism.
+
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            **Strong scaling:**
+
+                            How to compute faster? Relevant when the task is CPU-bound.
+
+                            Fixed problem size, increased number of processing elements.
+
+                            In such case, speedup and efficiency can be used to measure the performance gain and tune the number of processing units.
+
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            **Weak scaling:**
+
+                            How to compute using more data? Relevant when the task is I/O-bound.
+
+                            Problem size (workload) assigned to each processing element stays constant. Additional processing elements are used to solve a larger total problem.
+
+                            In this case, efficiency does not make sense, as we assume a constant workload.
+
+                        </script>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Tools
+
+                            In practice, softwares such as [Spark](http://spark.apache.org) or [HadoopMR](https://hadoop.apache.org) are in charge of these problems.
+
+                            They are *distributed compute engines*, i.e. softwares that ease the development of distributed algorithms.
+
+                            They run on clusters, managed by a resource manager, such as [YARN](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html) or [Mesos](http://mesos.apache.org)
+
+                            In short, resource managers ensures that the different tasks running on the cluster do not try to use the same resources all at once.
+
+                        </script>
+                    </section>
+                </section>
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            #### Hadoop MapReduce
+                            Hadoop is older, more enterprise-grade codebase (e.g. security with Kerberos)
+
+                            Good for data crunching (e.g. data cleaning, ETL: Extract, Transform, Load).
+
+                            Problems: lots of disk I/O
+
+                            For Machine Learning problems, this is a real problem as iterative algorithms need to access such as gradient values, parameters vector, etc. very often.
+                        </script>
+                    </section>
+                    <section>
+                        <h5>MapReduce's wordcount example</h5>
+                        <img src="../img/WordCountFlow.JPG">
+                    </section>
+                    <section>
+                        <h5>MapReduce's workflow</h5>
+                        <img src="../img/Mapreduce.png" width=80%>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            #### Hadoop Architecture
+
+                            Hadoop is made of three components :
+                            - HDFS (Highly Distributed File System) inspired from <a href="https://static.googleusercontent.com/media/research.google.com/en//archive/gfs-sosp2003.pdf">GoogleFileSystem</a>
+                            - YARN (Yet Another Ressource Negociator)
+                            - MapReduce inspired from <a href="https://research.google.com/archive/mapreduce.html">Google</a>
+
+                        </script>
+                    </section>
+                    <section>
+                        <h5>Hadoop Architecture</h5>
+                        <img src="../img/hadoop-archi.png" width=80%>
+                    </section>
+                </section>
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            #### Spark
+                            HadoopMR is designed for acyclic data flow models while Spark handles cyclic (e.g. iterative) data flows.
+
+                            Advantage of Spark over HadoopMR ?
+                            - Use RAM, i.e. fast iterative computations
+                            - lower overhead for starting jobs
+                            - simple & expressive (scala, python + interactive shell)
+                            - higher level libraries (SparkSQL, SparkStreaming, MLlib, GraphX)
+
+                            Requires servers with more CPU and more memory (more expensive), but still quite cheap compared to HPC.
+
+                        </script>
+                    </section>
+                    <section>
+                        <h5>Iteration speed comparison</h5>
+                        <img src="../img/spark-dev3.png" width=80%>
+                    </section>
+                    <section>
+                        <h5>Logistic regression speed comparison</h5>
+                        <img src="../img/logistic-regression.png" width=80%>
+                    </section>
+                    <section>
+                        <h5>Spark stack</h5>
+                        <img src="../img/spark_stack.png" width=80%>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            #### Spark and Hadoop comparison:
+
+                            |                          | HadoopMR     | Spark                           |
+                            | -----------------------: | -----------: | ------------------------------: |
+                            | storage                  | Disk         | in-memory or disk               |
+                            | operations               | Map, reduce  | Map, reduce, join, sample...    |
+                            | execution model          | Batch        | Batch, interactive, streaming   |
+                            | Programming environments | Java         | Scala, Java, Python, R          |
+                        </script>
+                    </section>
+                </section>
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        ### First lab:<br>Python Recap
+                    </script>
+                </section>
+                <section data-background="img/datacenter2.jpg">
+                    <h2>Bonus</h2>
+
+                    <p>Wonder what a datacenter <a href="http://www.google.com/about/datacenters/">looks like</a>?</p>
+
+                        <iframe width="560" height="315" src="https://www.youtube.com/embed/avP5d16wEp0" frameborder="0" allowfullscreen></iframe>
+
+                </section>
+            </div>
+        </div>
+
+        <script src="../reveal.js/lib/js/head.min.js"></script>
+        <script src="../reveal.js/js/reveal.js"></script>
+        <script src="../js/init-reveal.js"></script>
+    </body>
+</html>

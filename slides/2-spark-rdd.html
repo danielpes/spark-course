@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="description" content="Introduction to Apache Spark">
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+        <title>2. Apache Spark and RDDs</title>
+
+        <link rel="stylesheet" href="../reveal.js/css/reveal.css">
+        <link rel="stylesheet" href="../reveal.js/css/theme/black.css" id="theme">
+        <!-- Code syntax highlighting -->
+        <link rel="stylesheet" href="../reveal.js/lib/css/zenburn.css">
+        <!-- Printing and PDF exports -->
+        <script>
+            var link = document.createElement( 'link' );
+            link.rel = 'stylesheet';
+            link.type = 'text/css';
+            link.href = window.location.search.match( /print-pdf/gi ) ? '../reveal.js/css/print/pdf.css' : '../reveal.js/css/print/paper.css';
+            document.getElementsByTagName( 'head' )[0].appendChild( link );
+        </script>
+        <!--[if lt IE 9]>
+        <script src="lib/js/html5shiv.js"></script>
+        <![endif]-->
+        <style type="text/css">
+            p { text-align: left; }
+        </style>
+    </head>
+
+    <body>
+        <div class="reveal">
+            <div class="slides">
+                <section>
+                    <h1>Introduction to Apache Spark</h1>
+                    <br>
+                    <br>
+                    <h3>2. Apache Spark and RDDs</h3>
+                </section>
+
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        ## Reminder: Homeworks
+
+                        - Expected by email before the following class
+                        - Submit the exported notebook (.ipynb extension)
+                        - File name should include both student name and no space (FirstName1LastName1_FirstName2LastName2.py) for instance
+
+                    </script>
+                </section>
+<!--
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        ## Announcements (Project)
+
+                        - A scientific paper introducing an algorithm
+                        - An implementation paper by Google
+                        - You are expected to implement the algorithm and use it for movie ratings.
+                        - Read the implementation paper before next class to ask questions !
+                        - Next session you will learn how to launch a code on a cluster
+                        - Group of four people (send me the composition by email before next class)
+                        - Deadline : 14 april midnight
+
+                    </script>
+                </section>
+-->
+
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        ## Learning Resources
+                        - [Spark Documentation Website](http://spark.apache.org/docs/latest/)
+                        - API docs: [Scala](http://spark.apache.org/docs/latest/api/scala/index.html), [Python](http://spark.apache.org/docs/latest/api/python/)
+                        - Databricks learning notebooks
+                        - Book: [Learning Spark](http://shop.oreilly.com/product/0636920028512.do)
+                        - Online Book: [Mastering Spark 2](https://jaceklaskowski.gitbooks.io/mastering-apache-spark/content/)
+                        - StackOverflow: [apache-spark](https://stackoverflow.com/tags/apache-spark) and [pyspark](https://stackoverflow.com/tags/pyspark)
+                        - Practice!
+                    </script>
+                </section>
+
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        ## Philosophy
+
+                        Spark computing framework hides complexity of fault tolerance and slow machines.
+
+                        *"Here's an operation, run it on all the data."*
+
+                        - I do not care where it runs
+                        - Feel free to run it twice on different nodes
+
+                        Note:
+                        Jobs are divided in subtasks, that are executed by the workers
+                        - How do we deal with failure? Launch another task!
+                        - How do we deal with stragglers? Launch another task! (and kill original task)
+                    </script>
+                </section>
+
+                <section data-markdown data-separator-notes="^Note:">
+                    <script type="text/template">
+                        ## API
+                        Spark is implemented in Scala, runs on the JVM (Java Virtual Machine)
+
+                        Multiple Application Programming Interfaces (APIs):
+                        - Scala (JVM)
+                        - Java (JVM)
+                        - Python
+                        - R
+
+                        This course is based on Python API, as it is easier to learn than Scala and Java APIs for non-programmers.
+
+                        R API: *young*, outlying from the three others due to R syntax.
+
+                        Note:
+                        APIs allow users to interact with the software.
+                    </script>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Architecture
+                            When you interact with Spark through the API, you are sending instructions to the *driver*.
+
+                            Driver: central coordinator which communicates with the distributed workers called *executors*.
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## Architecture
+                            The driver
+                            - Creates a logical directed acyclic graph (DAG) of operations
+                            - Merges operations that can be merged
+                            - Splits the operations in *tasks* (smallest unit of work in Spark)
+                            - Schedules the tasks and send them to the executors
+                            - Tracks data and tasks
+
+                            Note:
+                            - Example of DAG: map(f) - map(g) - filter(h) - reduce(l)
+                            - map(f o g)
+                        </script>
+                    </section>
+                </section>
+
+                <section>
+                    <h2>SparkContext object</h2>
+
+                    <p>You interact with the driver through the <code>SparkContext</code> object. To create a <code>SparkContext</code> object: </p>
+
+                    <pre><code class="hljs py" data-trim contenteditable>
+from pyspark import SparkConf, SparkContext
+
+conf = SparkConf().setAppName(appName).setMaster(master)
+sc = SparkContext(conf = conf)
+                    </code></pre>
+
+                    <p>When using the Virtual Machine notebooks or any Spark interactive shell, <code>SparkContext</code> is automatically created.</p>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                            ## RDDs and running model
+                            Spark programs are written in terms of operations on **Resilient Distributed Datasets** (RDDs)
+
+                            RDD: immutable distributed collections of objects spread across the cluster disks or memory
+
+                            RDDs can contain any type of Python, Java, or Scala objects, including user-defined classes.
+
+                            Parallel transformations or actions can be applied to RDDs.
+
+                            RDDs are automatically rebuilt on machine failure.
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        ### Creating a RDD
+                        From an iterable object:
+
+                            lines = sc.parallelize(Iterator)
+
+                        From a text file:
+
+                            lines = sc.textFile("/path/to/file.txt")
+
+                        where `lines` is the resulting RDD, and `sc` the spark context.
+
+                        Note:
+                        - Parallelize is not much used in practice. Useful when you need to fiddle.
+                        - In real life, load data from external storage such as HDFS (Hadoop Distributed File System)
+                        - Quick description of what is HDFS
+                        </script>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        ## Operations on RDD
+
+                        Two families of operations can be performed on RDDs:
+                        - Transformations: operations on RDDs which return a new RDD. Lazy evaluation.
+                        - Actions:  operations on RDDs that return some other data type. Trigger computation.
+
+                        **Lazy evaluation:** When a transformation is called on an RDD, the operation is not immediately performed. Spark internally records that this operation has been requested. The computation is triggered only if an action requires the result of this transformation at some point.
+
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Transformations
+
+                        | transformation | description                      |
+                        | -------------: | -------------------------------: |
+                        | `map(f)`       | apply `f` to each element of the RDD |
+
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        >>> rdd = sc.parallelize([2, 3, 4])
+                        >>> sorted(rdd.map(lambda x: range(1, x)).collect())
+                        [ [1], [1, 2], [1, 2, 3] ]
+                        </code></pre>
+
+                        Note:
+                        - In Python, we have three options for passing functions into Spark.
+                        - short functions: lambda expressions
+                        - else: top-level functions, or locally defined functions.
+                        - Warning: when passing functions, you can inadvertently serializing the object containing the function. When you pass a function that is the member of an object, or contains references to fields in an object, Spark sends the entire object to worker nodes, which can be much larger than the bit of information you need. Sometimes this can also cause your program to fail, if your class contains objects that Python can’t figure out how to pickle.
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Transformations
+
+                        | transformation | description                      |
+                        | -------------: | -------------------------------: |
+                        | `flatMap(f)`   | apply `f` to each element of the RDD, then flattens the results |
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        >>> rdd = sc.parallelize([2, 3, 4])
+                        >>> sorted(rdd.flatMap(lambda x: range(1, x)).collect())
+                        [1, 1, 1, 2, 2, 3]
+                        </code></pre>
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Transformations
+
+                        | transformation | description                      |
+                        | -------------: | -------------------------------: |
+                        | `filter(f)`    | Return an RDD consisting of only elements that pass the condition `f` passed to `filter()` |
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        >>> rdd = sc.parallelize([2, 3, 4])
+                        >>> sorted(rdd.filter(lambda x: x % 2 == 0).collect())
+                        [2, 4]
+                        </code></pre>
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Transformations
+
+                        | transformation | description                      |
+                        | -------------: | -------------------------------: |
+                        | `distinct()`  | Removes duplicates |
+                        | `sample(withReplacement, fraction, [seed])`  | Sample an RDD, with or without replacement |
+
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Transformations - pseudo set operations
+
+                        | transformation | description                      |
+                        | -------------: | -------------------------------: |
+                        | `union(otherRdd)`  | Returns union with `otherRdd` |
+                        | `instersection(otherRdd)`  | Returns intersection with `otherRdd` |
+                        | `subtract(otherRdd)`  | Return each value in `self` that is not contained in `otherRdd`. |
+
+                        Note:
+                        - Unlike the mathematical union(), if there are duplicates in the input RDDs, the result of Spark’s union() will contain duplicates (which we can fix if desired with distinct()).
+                        - intersection() also removes all duplicates (including duplicates from a single RDD)
+                        - While intersection() and union() are two sim‐ ilar concepts, the performance of intersection() is much worse since it requires a shuffle over the network to identify common elements.
+                        - Subtact also requires a shuffle.
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Transformations - set operations
+
+                        | transformation | description                      |
+                        | -------------: | -------------------------------: |
+                        | `cartesian(otherRdd)`  | Return the Cartesian product of this RDD and another one |
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        >>> rdd = sc.parallelize([1, 2])
+                        >>> rdd2 = sc.parallelize(["a", "b"])
+                        >>> sorted(rdd.cartesian(rdd2).collect())
+                        [(1, "a"), (1, "b"), (2, "a"), (2, "b")]
+                        </code></pre>
+
+                        Note:
+                        - The Cartesian product is very expensive for large RDDs.
+
+                        </script>
+                    </section>
+                </section>
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Actions
+                        | transformation | description                      |
+                        | -------------: | -------------------------------: |
+                        | `collect()`    | Return all elements from the RDD |
+
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        >>> rdd = sc.parallelize([1, 2, 3, 3])
+                        >>> rdd.collect()
+                        [1, 2, 3, 3]
+                        </code></pre>
+
+                        Note:
+                        - When using collect, be sure that the retrieved data fits in the driver memory.
+                        - Useful when developping and working on very small data, for testing.
+
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Actions
+                        | transformation | description                      |
+                        | -------------: | -------------------------------: |
+                        | `count()`      | Return the number of elements in the RDD |
+                        | `countByValue()` | Return the count of each unique value in the RDD as a dictionary of `{value: count}` pairs. |
+
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Actions
+                        | action         | description                      |
+                        | -------------: | -------------------------------: |
+                        | `take(n)`      | Return `n` elements from the RDD (deterministic)|
+                        | `top(n)`       | Return first `n` elements from the RDD (decending order)|
+                        | `takeOrdered(num, key=None)`    | Get the N elements from a RDD ordered in ascending order or as specified by the optional key function.|
+
+                        Note:
+                        - `take(n)` returns n elements from the RDD and attempts to minimize the number of partitions it accesses, so it may represent a biased collection.
+                        - It’s important to note that `collect` and `take` operations do not return the elements in the order you might expect.
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Actions
+                        | action         | description                      |
+                        | -------------: | -------------------------------: |
+                        | `reduce(f)`    | Reduces the elements of this RDD using the specified commutative and associative binary operator `f`. Currently reduces partitions locally. |
+                        | `fold(zeroValue, op)`    | Same as reduce() but with the provided zero value. |
+
+                        The function `op(x, y)` is allowed to modify x and return it as its result value to avoid object allocation; however, it should not modify y.
+
+                        Note:
+                        - draw reduce vs fold (difference in implementation: fold uses accumulators?)
+                        - Reduce: applies some operation to pairs of elements until there is just one left. Throws an exception for empty collections.
+                        - Fold: initial zero-value: defined for empty collections.
+                        - Fold: lets initial value, and thus the result be of a different type: combines a source type S (x) and a result type T (y) into a result type T.
+                        - Fold: this property allows to work more efficiently with mutable types (e.g. sets), if the result is `a+b`, it may be faster to modify `a` to contain `a+b`
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Actions
+                        | action         | description                      |
+                        | -------------: | -------------------------------: |
+                        | `aggregate(zero, seqOp, combOp)` | Similar to reduce() but used to return a different type. |
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        >>> seqOp = (lambda x, y: (x[0] + y, x[1] + 1))
+                        >>> combOp = (lambda x, y: (x[0] + y[0], x[1] + y[1]))
+                        >>> sc.parallelize([1, 2, 3, 4]).aggregate((0, 0), seqOp, combOp)
+                        (10, 4)
+                        >>> sc.parallelize([]).aggregate((0, 0), seqOp, combOp)
+                        (0, 0)
+                        </code></pre>
+
+                        The functions `op(x, y)` is allowed to modify x and return it as its result value to avoid object allocation; however, it should not modify y.
+
+                        `seqOp` can return a different result type than the type of this RDD.
+
+                        Note:
+                        - Develop this example: useful for computing a mean for example (10 / 4).
+                        - seqOp: function to combine the elements from our RDD with the accumulator.
+                        - combOp: function that merges two accumulators.
+
+                        </script>
+                    </section>
+
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Actions
+                        | action         | description                      |
+                        | -------------: | -------------------------------: |
+                        | `foreach(f)` | Apply a function `f` to each element of a RDD |
+
+                        Perform an action on all of the elements in the RDD without returning any result to the driver.
+
+                        Example : insert records into a database with `f`
+
+                        The `foreach()` action lets us perform computations on each element in the RDD without bringing it back locally.
+
+                        </script>
+                    </section>
+
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        ## Lazy evaluation and persistence
+
+                        Spark RDDs are lazily evaluated
+
+                        Each time an action is called on a RDD, this RDD and all its dependencies are recomputed.
+
+                        If you plan to reuse a RDD multiple times, you sould use *persistence*.
+
+                        Note:
+                        - Spark uses lazy evaluation to reduce the number of passes it has to take over our data by grouping operations together.
+                        - In systems like Hadoop MapReduce, developers often have to spend a lot of time considering how to group together operations to minimize the number of MapReduce passes.
+                        - In Spark, no substantial benefit to writing a single complex map instead of chaining together many simple operations.
+                        - Thus, users are free to organize their program into smaller, more manageable operations.
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        | method         | description                      |
+                        | -------------: | -------------------------------: |
+                        | `cache()`      | Persist the RDD in memory        |
+                        | `persist(storageLevel)`      | Persist the RDD according to `storageLevel`  |
+
+                        These methods must be called before the action, and do not trigger the computation.
+
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        pyspark.StorageLevel(useDisk, useMemory, useOffHeap,
+                            deserialized, replication=1)
+                        </code></pre>
+
+                        | argument        | description                      |
+                        | -------------: | -------------------------------: |
+                        | `useDisk`      | Allow caching to use disk if `True`  |
+                        | `useMemory`    | Allow caching to use memory if `True`  |
+                        | `useOffHeap`   | Store data outside JVM heap. Useful if using [Tachyon](http://tachyon-project.com)  |
+                        | `deserialized` | Cache data without serialization  |
+                        | `replication`  | Number of replications of the cached data  |
+
+                        Note:
+                        - Replication: if you cache data that is quite slow to be recomputed, you can use replications. Thus, if a machine fails, the data will not have to be recomputed.
+                        - Serialization: Conversion of the data to a binary format. To my knowledge, PySpark only support serialized caching (as you cannot unserialized cache data that cannot be expressed in JVM data types).
+                        - Heap vs Stack
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        You can pass these constants to `StorageLevel` if you do not want to remember the parameters
+
+                        ```
+                        DISK_ONLY = StorageLevel(True, False, False, False, 1)
+                        DISK_ONLY_2 = StorageLevel(True, False, False, False, 2)
+                        MEMORY_AND_DISK = StorageLevel(True, True, False, True, 1)
+                        MEMORY_AND_DISK_2 = StorageLevel(True, True, False, True, 2)
+                        MEMORY_AND_DISK_SER = StorageLevel(True, True, False, False, 1)
+                        MEMORY_AND_DISK_SER_2 = StorageLevel(True, True, False, False, 2)
+                        MEMORY_ONLY = StorageLevel(False, True, False, True, 1)
+                        MEMORY_ONLY_2 = StorageLevel(False, True, False, True, 2)
+                        MEMORY_ONLY_SER = StorageLevel(False, True, False, False, 1)
+                        MEMORY_ONLY_SER_2 = StorageLevel(False, True, False, False, 2)
+                        OFF_HEAP = StorageLevel(False, False, True, False, 1)
+                        ```
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        What if you attempt to cache too much data to fit in memory ?
+
+                        Spark will automatically evict old partitions using a Least Recently Used (LRU) cache policy:
+                        - For the memory-only storage levels, it will recompute these partitions the next time they are accessed
+                        - For the memory-and-disk ones, it will write them out to disk.
+
+                        You can also `unpersist()` RDDs to manually remove them from the cache.
+                        </script>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        ## Passing functions
+
+                        **Warning:** when passing functions, you can inadvertently serialize the object containing the function. If you pass a function that:
+                        -  is the member of an object
+                        - contains references to fields in an object
+
+                        then Spark sends the entire object to worker nodes, which can be much larger than the bit of information you need.
+
+                        Sometimes this can also cause your program to fail, if your class contains objects that Python can’t figure out how to pickle.
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        Example: Passing a function with field references (don’t do this!)
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        class SearchFunctions(object):
+                            def __init__(self, query):
+                                self.query = query
+
+                            def isMatch(self, s):
+                                return self.query in s
+
+                            def getMatchesFunctionReference(self, rdd):
+                                # Problem: references all of "self" in "self.isMatch"
+                                return rdd.filter(self.isMatch)
+
+                            def getMatchesMemberReference(self, rdd):
+                                # Problem: references all of "self" in "self.query"
+                                return rdd.filter(lambda x: self.query in x)
+                        </code></pre>
+
+                        Instead, just extract the fields you need from your object into a local variable and pass that in.
+
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        Example: Python function passing without field references
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        class WordFunctions(object):
+
+                            ...
+
+                            def getMatchesNoReference(self, rdd):
+                            # Safe: extract only the field we need into a local variable
+                            query = self.query
+                            return rdd.filter(lambda x: query in x)
+                        </code></pre>
+                        </script>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        ## Pair RDD: key-value pairs
+
+                        For numerous tasks, such as aggregations tasks, storing information as `(key, value)` pairs into RDD is very convenient.
+
+                        Such RDDs are called `PairRDD`.
+
+                        Forming a `PairRDD` often requires some ETL (Extract, Transform, Load) work to get the data into `(key, value)` format.
+
+                        Pair RDDs expose new operations such as grouping together data with the same key, and grouping together two different RDDs.
+
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Example: creating a pair RDD using the first element of a list as a key
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        >>> rdd = sc.parallelize([[1, "a", "fe"], [2, "b", "de"],
+                         [2, "c", "fe"], ...])
+                        >>> pairs = rdd.map(lambda x: (x[0], x[1:]))
+                        </code></pre>
+
+                        Calling `sc.parallelize()` on an in-memory Python pair collection creates a `PairRDD`
+                        </script>
+                    </section>
+                </section>
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Transformations a single Pair RDD
+
+                        | transformation | description                      |
+                        | -------------: | -------------------------------: |
+                        | `keys()`       | Return an RDD containing the keys. |
+                        | `values()`     | Return an RDD containing the values. |
+                        | `sortByKey()`  | Return an RDD sorted by the key. |
+                        | `mapValues(f)`  | Apply a function `f` to each value of a pair RDD without changing the key. |
+
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Transformations a single Pair RDD
+
+                        | transformation | description                      |
+                        | -------------: | -------------------------------: |
+                        | `flatMapValues(f)` | Pass each value in the key-value pair RDD through a flatMap function `f` without changing the keys. Very useful for tokenization. |
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        >>> texts = sc.parallelize([("a", "x y z"), ("b", "p r")])
+                        >>> tokenize = lambda x: x.split(" ")
+                        >>> texts.flatMapValues(tokenize).collect()
+                        [('a', 'x'), ('a', 'y'), ('a', 'z'), ('b', 'p'), ('b', 'r')]
+                        </code></pre>
+
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Transformations a single Pair RDD
+
+                        | transformation | description                      |
+                        | -------------: | -------------------------------: |
+                        | `groupByKey()` | Group values with the same key |
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        >>> rdd = sc.parallelize([("a", 1), ("b", 1), ("a", 1)])
+                        >>> sorted(rdd.groupByKey().mapValues(list).collect())
+                        [('a', [1, 1]), ('b', [1])]
+                        </code></pre>
+
+                        </script>
+                    </section>
+                    <section>
+                        <h5>GroupByKey</h5>
+                        <img src="../img/group_by.png">
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Transformations a single Pair RDD
+
+                        | transformation | description                      |
+                        | -------------: | -------------------------------: |
+                        | `reduceByKey(f)` | Merge the values for each key using an associative reduce function `f`. |
+                        | `foldByKey(f)` | Merge the values for each key using an associative reduce function `f`. |
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        >>> rdd = sc.parallelize([("a", 1), ("b", 1), ("a", 1)])
+                        >>> sorted(rdd.reduceByKey(add).collect())
+                        [('a', 2), ('b', 1)]
+                        </code></pre>
+
+                        Note:
+                        - Does the reducing locally
+
+                        </script>
+                    </section>
+                    <section>
+                        <h5>ReduceByKey</h5>
+                        <img src="../img/reduce_by.png">
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Transformations a single Pair RDD
+
+                        | transformation | description                      |
+                        | -------------: | -------------------------------: |
+                        | `combineByKey( createCombiner, mergeValue, mergeCombiners, [partitioner])` | Generic function to combine the elements for each key using a custom set of aggregation functions. |
+
+                        Turns an `RDD[(K, V)]` into a result of type `RDD[(K, C)]`, for a “combined type” `C` which can be different of `V`.
+
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Transformations a single Pair RDD
+
+                        The user must pass the following functions:
+                        - createCombiner, which turns a `V` into a `C` (e.g., creates a one-element list)
+                        - mergeValue, to merge a `V` into a `C` (e.g., adds it to the end of a list)
+                        - mergeCombiners, to combine two `C`’s into a single one.
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        >>> x = sc.parallelize([("a", 1), ("b", 1), ("a", 1)])
+                        >>> def add(a, b): return a + str(b)
+                        >>> sorted(x.combineByKey(str, add, add).collect())
+                        [('a', '11'), ('b', '1')]
+                        </code></pre>
+
+                        </script>
+                    </section>
+                </section>
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Transformations two Pair RDDs
+
+                        | transformation | description                      |
+                        | -------------: | -------------------------------: |
+                        | `subtractByKey(other)` | Remove elements with a key present in the `other` RDD. |
+                        | `join(other)` | Inner join with `other` RDD. |
+                        | `rightOuterJoin(other)` | Right join with `other` RDD. |
+                        | `leftOuterJoin(other)` | Left join with `other` RDD. |
+
+                        Note:
+                        - Right join: the key must be present in the first RDD
+                        - Left join: the key must be present in the `other` RDD
+
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Transformations two Pair RDDs
+
+                        | transformation | description                      |
+                        | -------------: | -------------------------------: |
+                        | `cogroup(other)` | Group data from both RDDs sharing the same key. |
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        >>> rdd = sc.parallelize([(1, 2), (3, 4), (3, 6)])
+                        >>> other = sc.parallelize([(3, 9)])
+                        >>> sorted(rdd.cogroup(other).collect())
+                        [(1,([2],[])), (3, ([4, 6],[9]))]
+                        </code></pre>
+
+                        </script>
+                    </section>
+                </section>
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        #### Actions two Pair RDDs
+
+                        | action         | description                      |
+                        | -------------: | -------------------------------: |
+                        | `countByKey()` | Count the number of elements for each key. |
+                        | `lookup(key)`  | Return all the values associated with the provided `key`. |
+                        | `collectAsMap()` | Return the key-value pairs in this RDD to the master as a Python dictionary. |
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        >>> rdd = sc.parallelize([(1, 2), (3, 4), (3, 6)])
+                        >>> other = sc.parallelize([(3, 9)])
+                        >>> sorted(rdd.cogroup(other).collect())
+                        [(1,([2],[])), (3, ([4, 6],[9]))]
+                        </code></pre>
+
+                        </script>
+                    </section>
+                </section>
+                <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        ## Data partitionning
+
+                        Some operations on PairRDDs, shuch as `join`, require to scan the data more than once.
+
+                        Partitionning the RDDs in advance can reduce network communications.
+
+                        When a key-oriented dataset is reused multiple times, partitionning can lead to performance increase.
+
+                        In Spark: you can choose which keys will appear on the same node, but no explicit control of which worker node each key goes to.
+
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        In practice, you can specify the number of partitions with
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        rdd.partitionBy(100)
+                        </code></pre>
+
+                        You can also use a custom partition function `h` s.t. `h(key)` returning a hash.
+
+                        <pre><code class="hljs py" data-trim contenteditable>
+                        import urlparse
+                        def hash_domain(url):
+                        return hash(urlparse.urlparse(url).netloc)
+                        rdd.partitionBy(20, hash_domain) # Create 20 partitions
+                        </code></pre>
+
+
+                        To have finer control on partitionning, you must use the Scala API.
+                        </script>
+                    </section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        **Warning**:
+
+                        The hash function you pass will be compared by identity to that of other RDDs.
+
+                        If you want to partition multiple RDDs with the same partitioner, pass the same **function object** (e.g., a global function) instead of creating a new lambda for each one!
+                        </script>
+                    </section>
+                </section>
+               <!--  <section>
+                    <section data-markdown data-separator-notes="^Note:">
+                        <script type="text/template">
+                        # NUMERIC RDD Operations (113)
+
+                        # Accumulators (100)
+
+                        # Broadcast (104)
+
+                        # Dataframes
+
+                        ## Loading and saving your data
+
+                        loading text files
+                        *can be reading all the files in a directory
+
+                        Saving text files
+
+                        JSON loading / saving
+
+                        CSV
+
+                        Object files (pickle)
+
+                        Several Hadoop files (+ compression)
+
+                        from database: with Scala API
+
+                        **file system**
+
+                        SSH + spark on a cluster
+                        </script>
+                    </section>
+                </section> -->
+            </div>
+        </div>
+
+        <script src="../reveal.js/lib/js/head.min.js"></script>
+        <script src="../reveal.js/js/reveal.js"></script>
+        <script src="../js/init-reveal.js"></script>
+    </body>
+</html>
