@@ -73,24 +73,26 @@
 
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
-                            ## Contexts and SparkSession: Creating SQLContext and SparkSession
-                            ```python
-                            from pyspark import SparkConf, SparkContext
-                            from pyspark.sql import SQLContext, SparkSession
+                        <!-- .slide: style="font-size:0.85em" -->  
+                        ## Contexts and SparkSession: Creating SQLContext and SparkSession
 
-                            # Before Spark 2
-                            conf = SparkConf().setAppName(appName).setMaster(master)
-                            sc = SparkContext(conf = conf)
-                            sql_context = new SQLContext(sc)
+                        ```python
+                        from pyspark import SparkConf, SparkContext
+                        from pyspark.sql import SQLContext, SparkSession
 
-                            # Since Spark 2.0
-                            spark = SparkSession \
-                                .builder \
-                                .appName(appName) \
-                                .master(master)
-                                .config("spark.some.config.option", "some-value") \
-                                .getOrCreate()
-                            ```
+                        # Before Spark 2
+                        conf = SparkConf().setAppName(appName).setMaster(master)
+                        sc = SparkContext(conf = conf)
+                        sql_context = new SQLContext(sc)
+
+                        # Since Spark 2.0
+                        spark = SparkSession \
+                            .builder \
+                            .appName(appName) \
+                            .master(master)
+                            .config("spark.some.config.option", "some-value") \
+                            .getOrCreate()
+                        ```
                         </script>
                     </section>
                 </section>
@@ -131,8 +133,7 @@
                             >>> df.show()
                             ```
 
-                            ```
-                            root
+                            ```md
                             |-- name: string (nullable = true)
                             |-- age: long (nullable = true)
 
@@ -154,7 +155,7 @@
                             >>> print(df.rdd.toDebugString())
                             ```
 
-                            ```
+                            ```md
                             (8) MapPartitionsRDD[209] at javaToPython at NativeMethodAccessorImpl.java:0 []
                             |  MapPartitionsRDD[208] at javaToPython at NativeMethodAccessorImpl.java:0 []
                             |  MapPartitionsRDD[207] at javaToPython at NativeMethodAccessorImpl.java:0 []
@@ -192,7 +193,7 @@
                             >>> df = spark.createDataFrame(rows)
                             >>> df.show()
                             ```
-                            ```
+                            ```md
                             +---+------+------+
                             |age|gender|  name|
                             +---+------+------+
@@ -217,7 +218,7 @@
                             >>> df = spark.createDataFrame(rows, column_names)
                             >>> df.show()
                             ```
-                            ```
+                            ```md
                             +------+---+------+
                             |  name|age|gender|
                             +------+---+------+
@@ -242,7 +243,7 @@
                             >>> df = spark.createDataFrame(rdd, column_names)
                             >>> df.show()
                             ```
-                            ```
+                            ```md
                             +------+---+------+
                             |  name|age|gender|
                             +------+---+------+
@@ -284,7 +285,7 @@
                             df.show()
                             ```
 
-                            ```python
+                            ```md
                             root
                             |-- name: string (nullable = true)
                             |-- age: integer (nullable = true)
@@ -346,35 +347,36 @@
 
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
-                            ## Reading From CSV
+                        ## Reading From CSV
 
-                            ```python
-                            df = spark.read.csv("/path/to/file.csv")
-                            ```
+                        ```python
+                        df = spark.read.csv("/path/to/file.csv")
+                        ```
 
-                            ```python
-                            path = "/path/to/file.csv"
-                            df = spark.read.option("header", "true").csv(path)
-                            ```
+                        ```python
+                        path = "/path/to/file.csv"
+                        df = spark.read.option("header", "true").csv(path)
+                        ```
 
 
-                            ```python
-                            df = spark.read\
-                                      .format("csv")\
-                                      .option("header", "true")\
-                                      .option("sep", ";")\
-                                      .load("/path/to/file.csv")
-                            ```
+                        ```python
+                        df = spark.read\
+                                    .format("csv")\
+                                    .option("header", "true")\
+                                    .option("sep", ";")\
+                                    .load("/path/to/file.csv")
+                        ```
 
-                            ```python
-                            df = spark.read.csv(path, sep=";", header=True)
-                            ```
+                        ```python
+                        df = spark.read.csv(path, sep=";", header=True)
+                        ```
                         </script>
                     </section>
 
 
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                            <!-- .slide: style="font-size:0.85em" -->  
                             ## Reading From CSV - Main Options
 
                             - Some important options of the CSV reader are listed here:
@@ -418,6 +420,7 @@
 
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                            <!-- .slide: style="font-size:0.9em" -->  
                             ## Reading From External Databases
                             - We can use JDBC drivers (Java) to read from relational Databases
                                 - Examples of databases: Oracle, PostgreSQL, MySQL, etc.
@@ -511,6 +514,7 @@
 
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                            <!-- .slide: style="font-size:0.9em" -->  
                             ## Basic Operations
 
                             | operation | description |
@@ -536,7 +540,9 @@
 
                             # Using Spark SQL API:
                             df.select("name", "age").show()
+                            ```
 
+                            ```md
                             +-----+---+
                             | name|age|
                             +-----+---+
@@ -563,7 +569,9 @@
                             df.where(df['age'] > 21).show()
                             df.where(df.age > 21).show()
                             df.select("*").where("age > 21").show()
+                            ```
 
+                            ```md
                             +----+---+------+
                             |name|age|gender|
                             +----+---+------+
@@ -588,7 +596,9 @@
                             df.select("*").limit(1).show()
 
                             # Note: The result is not deterministic!
+                            ```
 
+                            ```md
                             +----+---+------+
                             |name|age|gender|
                             +----+---+------+
@@ -609,7 +619,9 @@
 
                             # Using Spark SQL API:
                             df.orderBy(df.name.asc()).show()
+                            ```
 
+                            ```md
                             +----+---+------+
                             |name|age|gender|
                             +----+---+------+
@@ -630,7 +642,9 @@
 
                             # Using Spark SQL API:
                             df.select(df.name, df.age, df.gender.alias('sex')).show()
+                            ```
 
+                            ```md
                             +----+---+------+
                             |name|age|   sex|
                             +----+---+------+
@@ -656,7 +670,9 @@
                             # or
                             new_age_col = df.age.cast("float").alias("age_f")
                             df.select(df.name, new_age_col).show()
+                            ```
 
+                            ```md
                             +----+-----+
                             |name|age_f|
                             +----+-----+
@@ -682,7 +698,9 @@
                             df.select("*", (df.age * 12).alias("age_months")).show()
 
                             # Note: Using withColumn is preferable
+                            ```
 
+                            ```md
                             +----+---+------+----------+
                             |name|age|gender|(age * 12)|
                             +----+---+------+----------+
@@ -707,6 +725,7 @@
 
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                            <!-- .slide: style="font-size:0.85em" -->  
                             ## Column Functions
 
                             - Most of the time we need to make many transformations use one or more functions
@@ -759,7 +778,7 @@
                               .show()
 
                             ```
-                            ```python
+                            ```md
                             +-------+----+-----+-----+----+
                             |  brand|cost|round|floor|ceil|
                             +-------+----+-----+-----+----+
@@ -789,7 +808,7 @@
                             df.withColumn("name", name).show()
 
                             ```
-                            ```python
+                            ```md
                             +----------+---------+------+
                             |first_name|last_name|  name|
                             +----------+---------+------+
@@ -823,7 +842,7 @@
                               .show()
 
                             ```
-                            ```python
+                            ```md
                             +----------+----------+------------+-----------+
                             |start_date|  end_date|days_between|start_month|
                             +----------+----------+------------+-----------+
@@ -863,7 +882,7 @@
 
                             df.withColumn("supervisor", supervisor).show()
                             ```
-                            ```python
+                            ```md
                             +------+---+----------+----------+
                             |  name|age|    gender|supervisor|
                             +------+---+----------+----------+
@@ -893,7 +912,7 @@
 
                             df.withColumn("supervisor", supervisor).show()
                             ```
-                            ```python
+                            ```md
                             +------+---+----------+----------+
                             |  name|age|    gender|supervisor|
                             +------+---+----------+----------+
@@ -941,7 +960,7 @@
 
                             df.withColumn("udf", my_udf(df['first'], df['second'])).show()
                             ```
-                            ```
+                            ```md
                             +-----+------+------------------+
                             |first|second|               udf|
                             +-----+------+------------------+
@@ -989,7 +1008,7 @@
                             # The default join type is the "INNER" join
                             purchases.join(products, 'prod_id').show()
                             ```
-                            ```
+                            ```md
                             +-------+----------+--------+--------+----------+----------+
                             |prod_id|      date|quantity|prod_cat|prod_brand|prod_value|
                             +-------+----------+--------+--------+----------+----------+
@@ -1015,7 +1034,7 @@
                                 (purchases AS prc INNER JOIN products AS prd on prc.prod_id = prd.prod_id)"""
                             spark.sql(query).show()
                             ```
-                            ```
+                            ```md
                             +----------+--------+-------+-------+--------+----------+----------+
                             |      date|quantity|prod_id|prod_id|prod_cat|prod_brand|prod_value|
                             +----------+--------+-------+-------+--------+----------+----------+
@@ -1042,7 +1061,7 @@
                             join_rule = new_purchases.prod_id_x == products.prod_id
                             new_purchases.join(products, join_rule, 'left').show()
                             ```
-                            ```
+                            ```md
                             +----------+--------+---------+-------+--------+----------+----------+
                             |      date|quantity|prod_id_x|prod_id|prod_cat|prod_brand|prod_value|
                             +----------+--------+---------+-------+--------+----------+----------+
@@ -1080,6 +1099,7 @@
                 <section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                            <!-- .slide: style="font-size:0.85em" -->  
                             ## Performing Aggregations
 
                             - Maybe the most used operations in SQL and Spark SQL
@@ -1111,7 +1131,7 @@
                             from pyspark.sql import functions as fn
                             products.groupBy('prod_cat').agg(fn.avg('prod_value')).show()
                             ```
-                            ```
+                            ```md
                             +--------+-----------------+
                             |prod_cat|  avg(prod_value)|
                             +--------+-----------------+
@@ -1130,7 +1150,9 @@
                             from pyspark.sql import functions as fn
                             products.groupBy('prod_brand', 'prod_cat')
                                     .agg(fn.avg('prod_value')).show()
+                            ```
 
+                            ```md
                             +----------+--------+---------------+
                             |prod_brand|prod_cat|avg(prod_value)|
                             +----------+--------+---------------+
@@ -1153,7 +1175,8 @@
                                 fn.ceil(fn.sum('prod_value')).alias('sum'),
                                 fn.min('prod_value').alias('min')
                             ).show()
-
+                            ``` 
+                            ```md
                             +----------+-------+---+-----+
                             |prod_brand|average|sum|  min|
                             +----------+-------+---+-----+
@@ -1180,7 +1203,7 @@
                             """
                             spark.sql(query).show()
                             ```
-                            ```
+                            ```md
                             +----------+-------+-----+
                             |prod_brand|average|  min|
                             +----------+-------+-----+
@@ -1230,7 +1253,7 @@
                             # Finally, we can use this as usualusual
                             products.withColumn('avg_brand_value', fn.round(avg, 2)).show()
                             ```
-                            ```
+                            ```md
                             +-------+--------+----------+----------+---------------+
                             |prod_id|prod_cat|prod_brand|prod_value|avg_brand_value|
                             +-------+--------+----------+----------+---------------+
@@ -1259,7 +1282,7 @@
 
                             products.withColumn('avg_value', fn.round(avg, 2)).show()
                             ```
-                            ```
+                            ```md
                             +-------+--------+----------+----------+---------+
                             |prod_id|prod_cat|prod_brand|prod_value|avg_value|
                             +-------+--------+----------+----------+---------+
@@ -1276,6 +1299,7 @@
 
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                            <!-- .slide: style="font-size:0.85em" -->  
                             ## Numeric Window Functions
                             ```python
                             from pyspark.sql import Window
@@ -1293,7 +1317,7 @@
                                 .withColumn('avg_by_cat', fn.round(avg_cat, 2))\
                                 .show()
                             ```
-                            ```
+                            ```md
                             +-------+--------+----------+----------+------------+----------+
                             |prod_id|prod_cat|prod_brand|prod_value|avg_by_brand|avg_by_cat|
                             +-------+--------+----------+----------+------------+----------+
@@ -1320,6 +1344,7 @@
 
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                            <!-- .slide: style="font-size:0.85em" -->  
                             ## Lag and Lead
                             ```python
                             purchases = spark.createDataFrame([
@@ -1334,7 +1359,7 @@
 
                             purchases.show()
                             ```
-                            ```
+                            ```md
                             +----------+--------+
                             |      date|prod_cat|
                             +----------+--------+
@@ -1367,7 +1392,7 @@
                                 .show()
 
                             ```
-                            ```
+                            ```md
                             +--------+----------+----------+----------+
                             |prod_cat|      date|      prev|      next|
                             +--------+----------+----------+----------+
@@ -1395,6 +1420,7 @@
 
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                            <!-- .slide: style="font-size:0.85em" -->  
                             ## Rank and RowNumber
 
                             ```python
@@ -1411,7 +1437,7 @@
                             contestants.show()
                             ```
 
-                            ```
+                            ```md
                             +--------+-------+------+
                             |category|   name|points|
                             +--------+-------+------+
@@ -1430,6 +1456,7 @@
 
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                            <!-- .slide: style="font-size:0.85em" -->  
                             ## Rank and RowNumber
 
                             ```python
@@ -1447,7 +1474,7 @@
                                 .show()
                             ```
 
-                            ```
+                            ```md
                             +--------+-------+------+----+----------+----------+
                             |category|   name|points|rank|dense_rank|row_number|
                             +--------+-------+------+----+----------+----------+
@@ -1517,51 +1544,6 @@
 
                     </script>
                 </section>
-                <!--
-                Overview
-                DataFrame
-                Creating a DataFrame
-                Schema and Types
-                Reading From Sources
-                 - CSV
-                 - Parquet
-                 - JDBC
-                 - Hive
-
-                Basic Operations
-                 - select
-                 - where
-                 - column operators / cast / alias
-                 - with_column / with_column_renamed
-                 - limit
-                Column Functions
-                 - String
-                   - concat
-                   - substr
-                   - trim
-                 - Numeric
-                   - floor
-                   - ceil
-                   - round
-                 - Date
-                   - datediff
-                   - month / year / etc
-                 Conditional Transformation
-                   - when / otherwise
-
-                 User Defined Functions
-
-                 Joins
-
-                 Aggregations
-                   - groupBy
-                   - agg
-                   - aggregation functions
-
-                 Window Functions
-
-                 Writing to Files
-                -->
             </div>
         </div>
 
