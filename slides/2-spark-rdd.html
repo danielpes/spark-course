@@ -83,6 +83,7 @@
 
                 <section data-markdown data-separator-notes="^Note:">
                     <script type="text/template">
+                        <!-- .slide: style="font-size:0.85em" -->  
                         ## API
                         Spark is implemented in Scala, runs on the JVM (Java Virtual Machine)
 
@@ -132,7 +133,7 @@
 
                     <p>You interact with the driver through the <code>SparkContext</code> object. To create a <code>SparkContext</code> object: </p>
 
-                    <pre><code class="hljs py" data-trim contenteditable>
+                    <pre><code class="hljs py" data-trim>
 from pyspark import SparkConf, SparkContext
 
 conf = SparkConf().setAppName(appName).setMaster(master)
@@ -145,6 +146,7 @@ sc = SparkContext(conf = conf)
                 <section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                            <!-- .slide: style="font-size:0.85em" -->  
                             ## RDDs and running model
                             Spark programs are written in terms of operations on **Resilient Distributed Datasets** (RDDs)
 
@@ -181,6 +183,7 @@ sc = SparkContext(conf = conf)
                 <section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                        <!-- .slide: style="font-size:0.85em" -->  
                         ## Operations on RDD
 
                         Two families of operations can be performed on RDDs:
@@ -201,7 +204,7 @@ sc = SparkContext(conf = conf)
                         | `map(f)`       | apply `f` to each element of the RDD |
 
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         >>> rdd = sc.parallelize([2, 3, 4])
                         >>> sorted(rdd.map(lambda x: range(1, x)).collect())
                         [ [1], [1, 2], [1, 2, 3] ]
@@ -222,7 +225,7 @@ sc = SparkContext(conf = conf)
                         | -------------: | -------------------------------: |
                         | `flatMap(f)`   | apply `f` to each element of the RDD, then flattens the results |
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         >>> rdd = sc.parallelize([2, 3, 4])
                         >>> sorted(rdd.flatMap(lambda x: range(1, x)).collect())
                         [1, 1, 1, 2, 2, 3]
@@ -237,7 +240,7 @@ sc = SparkContext(conf = conf)
                         | -------------: | -------------------------------: |
                         | `filter(f)`    | Return an RDD consisting of only elements that pass the condition `f` passed to `filter()` |
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         >>> rdd = sc.parallelize([2, 3, 4])
                         >>> sorted(rdd.filter(lambda x: x % 2 == 0).collect())
                         [2, 4]
@@ -257,6 +260,7 @@ sc = SparkContext(conf = conf)
                     </section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                        <!-- .slide: style="font-size:0.8em" -->  
                         #### Transformations - pseudo set operations
 
                         | transformation | description                      |
@@ -274,13 +278,14 @@ sc = SparkContext(conf = conf)
                     </section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                        <!-- .slide: style="font-size:0.9em" -->  
                         #### Transformations - set operations
 
                         | transformation | description                      |
                         | -------------: | -------------------------------: |
                         | `cartesian(otherRdd)`  | Return the Cartesian product of this RDD and another one |
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         >>> rdd = sc.parallelize([1, 2])
                         >>> rdd2 = sc.parallelize(["a", "b"])
                         >>> sorted(rdd.cartesian(rdd2).collect())
@@ -302,7 +307,7 @@ sc = SparkContext(conf = conf)
                         | `collect()`    | Return all elements from the RDD |
 
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         >>> rdd = sc.parallelize([1, 2, 3, 3])
                         >>> rdd.collect()
                         [1, 2, 3, 3]
@@ -316,6 +321,7 @@ sc = SparkContext(conf = conf)
                     </section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                        <!-- .slide: style="font-size:0.9em" -->  
                         #### Actions
                         | transformation | description                      |
                         | -------------: | -------------------------------: |
@@ -326,6 +332,7 @@ sc = SparkContext(conf = conf)
                     </section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                        <!-- .slide: style="font-size:0.85em" -->  
                         #### Actions
                         | action         | description                      |
                         | -------------: | -------------------------------: |
@@ -340,6 +347,7 @@ sc = SparkContext(conf = conf)
                     </section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                        <!-- .slide: style="font-size:0.7em" -->  
                         #### Actions
                         | action         | description                      |
                         | -------------: | -------------------------------: |
@@ -358,12 +366,13 @@ sc = SparkContext(conf = conf)
                     </section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                        <!-- .slide: style="font-size:0.75em" -->  
                         #### Actions
                         | action         | description                      |
                         | -------------: | -------------------------------: |
                         | `aggregate(zero, seqOp, combOp)` | Similar to reduce() but used to return a different type. |
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         >>> seqOp = (lambda x, y: (x[0] + y, x[1] + 1))
                         >>> combOp = (lambda x, y: (x[0] + y[0], x[1] + y[1]))
                         >>> sc.parallelize([1, 2, 3, 4]).aggregate((0, 0), seqOp, combOp)
@@ -433,7 +442,8 @@ sc = SparkContext(conf = conf)
                     </section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <!-- .slide: style="font-size:0.85em" -->  
+                        <pre><code class="hljs py" data-trim>
                         pyspark.StorageLevel(useDisk, useMemory, useOffHeap,
                             deserialized, replication=1)
                         </code></pre>
@@ -487,6 +497,7 @@ sc = SparkContext(conf = conf)
                 <section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                        <!-- .slide: style="font-size:0.85em" -->  
                         ## Passing functions
 
                         **Warning:** when passing functions, you can inadvertently serialize the object containing the function. If you pass a function that:
@@ -502,7 +513,7 @@ sc = SparkContext(conf = conf)
                         <script type="text/template">
                         Example: Passing a function with field references (don’t do this!)
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         class SearchFunctions(object):
                             def __init__(self, query):
                                 self.query = query
@@ -527,7 +538,7 @@ sc = SparkContext(conf = conf)
                         <script type="text/template">
                         Example: Python function passing without field references
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         class WordFunctions(object):
 
                             ...
@@ -544,6 +555,7 @@ sc = SparkContext(conf = conf)
                 <section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                        <!-- .slide: style="font-size:0.9em" -->  
                         ## Pair RDD: key-value pairs
 
                         For numerous tasks, such as aggregations tasks, storing information as `(key, value)` pairs into RDD is very convenient.
@@ -553,14 +565,13 @@ sc = SparkContext(conf = conf)
                         Forming a `PairRDD` often requires some ETL (Extract, Transform, Load) work to get the data into `(key, value)` format.
 
                         Pair RDDs expose new operations such as grouping together data with the same key, and grouping together two different RDDs.
-
                         </script>
                     </section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
                         #### Example: creating a pair RDD using the first element of a list as a key
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         >>> rdd = sc.parallelize([[1, "a", "fe"], [2, "b", "de"],
                          [2, "c", "fe"], ...])
                         >>> pairs = rdd.map(lambda x: (x[0], x[1:]))
@@ -592,7 +603,7 @@ sc = SparkContext(conf = conf)
                         | -------------: | -------------------------------: |
                         | `flatMapValues(f)` | Pass each value in the key-value pair RDD through a flatMap function `f` without changing the keys. Very useful for tokenization. |
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         >>> texts = sc.parallelize([("a", "x y z"), ("b", "p r")])
                         >>> tokenize = lambda x: x.split(" ")
                         >>> texts.flatMapValues(tokenize).collect()
@@ -609,7 +620,7 @@ sc = SparkContext(conf = conf)
                         | -------------: | -------------------------------: |
                         | `groupByKey()` | Group values with the same key |
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         >>> rdd = sc.parallelize([("a", 1), ("b", 1), ("a", 1)])
                         >>> sorted(rdd.groupByKey().mapValues(list).collect())
                         [('a', [1, 1]), ('b', [1])]
@@ -630,7 +641,7 @@ sc = SparkContext(conf = conf)
                         | `reduceByKey(f)` | Merge the values for each key using an associative reduce function `f`. |
                         | `foldByKey(f)` | Merge the values for each key using an associative reduce function `f`. |
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         >>> rdd = sc.parallelize([("a", 1), ("b", 1), ("a", 1)])
                         >>> sorted(rdd.reduceByKey(add).collect())
                         [('a', 2), ('b', 1)]
@@ -647,6 +658,7 @@ sc = SparkContext(conf = conf)
                     </section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                        <!-- .slide: style="font-size:0.9em" -->  
                         #### Transformations a single Pair RDD
 
                         | transformation | description                      |
@@ -666,7 +678,7 @@ sc = SparkContext(conf = conf)
                         - mergeValue, to merge a `V` into a `C` (e.g., adds it to the end of a list)
                         - mergeCombiners, to combine two `C`’s into a single one.
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         >>> x = sc.parallelize([("a", 1), ("b", 1), ("a", 1)])
                         >>> def add(a, b): return a + str(b)
                         >>> sorted(x.combineByKey(str, add, add).collect())
@@ -679,6 +691,7 @@ sc = SparkContext(conf = conf)
                 <section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                        <!-- .slide: style="font-size:0.85em" -->  
                         #### Transformations two Pair RDDs
 
                         | transformation | description                      |
@@ -702,7 +715,7 @@ sc = SparkContext(conf = conf)
                         | -------------: | -------------------------------: |
                         | `cogroup(other)` | Group data from both RDDs sharing the same key. |
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         >>> rdd = sc.parallelize([(1, 2), (3, 4), (3, 6)])
                         >>> other = sc.parallelize([(3, 9)])
                         >>> sorted(rdd.cogroup(other).collect())
@@ -715,6 +728,7 @@ sc = SparkContext(conf = conf)
                 <section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                        <!-- .slide: style="font-size:0.85em" -->  
                         #### Actions two Pair RDDs
 
                         | action         | description                      |
@@ -723,7 +737,7 @@ sc = SparkContext(conf = conf)
                         | `lookup(key)`  | Return all the values associated with the provided `key`. |
                         | `collectAsMap()` | Return the key-value pairs in this RDD to the master as a Python dictionary. |
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         >>> rdd = sc.parallelize([(1, 2), (3, 4), (3, 6)])
                         >>> other = sc.parallelize([(3, 9)])
                         >>> sorted(rdd.cogroup(other).collect())
@@ -752,13 +766,13 @@ sc = SparkContext(conf = conf)
                         <script type="text/template">
                         In practice, you can specify the number of partitions with
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         rdd.partitionBy(100)
                         </code></pre>
 
                         You can also use a custom partition function `h` s.t. `h(key)` returning a hash.
 
-                        <pre><code class="hljs py" data-trim contenteditable>
+                        <pre><code class="hljs py" data-trim>
                         import urlparse
                         def hash_domain(url):
                         return hash(urlparse.urlparse(url).netloc)
@@ -779,40 +793,6 @@ sc = SparkContext(conf = conf)
                         </script>
                     </section>
                 </section>
-               <!--  <section>
-                    <section data-markdown data-separator-notes="^Note:">
-                        <script type="text/template">
-                        # NUMERIC RDD Operations (113)
-
-                        # Accumulators (100)
-
-                        # Broadcast (104)
-
-                        # Dataframes
-
-                        ## Loading and saving your data
-
-                        loading text files
-                        *can be reading all the files in a directory
-
-                        Saving text files
-
-                        JSON loading / saving
-
-                        CSV
-
-                        Object files (pickle)
-
-                        Several Hadoop files (+ compression)
-
-                        from database: with Scala API
-
-                        **file system**
-
-                        SSH + spark on a cluster
-                        </script>
-                    </section>
-                </section> -->
             </div>
         </div>
 

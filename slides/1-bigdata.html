@@ -47,7 +47,7 @@
 
                         Rapid growth of datasets: internet activity, genomics, astronomy, censor networks, etc.
 
-                        Data size trends: doubles every year according to [IDC executive summary](http://www.emc.com/leadership/digital-universe/2014iview/executive-summary.htm).
+                        Data size trends: doubles every year according to [IDC executive summary](https://www.emc.com/leadership/digital-universe/2014iview/executive-summary.htm).
 
                         Data grows faster than Moore's law. How do we scale the training of a statistical model?
                     </script>
@@ -99,8 +99,9 @@
                             Time to read 1Tb from disk: 3hours (100MB/s)
                         </script>
                     </section>
-                    <section data-markdown data-separator-notes="^Note:">
+                    <section data-markdown data-separator-notes="^Note:" >
                         <script type="text/template">
+                            <!-- .slide: style="font-size:0.85em" -->  
                             Data is streamed from the disk to the different layers of memory.
 
                             Problem: disks cannot be read in parallel... Use several disks.
@@ -112,7 +113,7 @@
                             *Depending on the task*, distributed computing starts to be useful with 1TB datasets. Below that, a large multicore workstation or server might be able to handle it.
                         </script>
                     </section>
-                    <section data-background-iframe="http://www.eecs.berkeley.edu/~rcs/research/interactive_latency.html"></section>
+                    <section data-background-iframe="https://www.eecs.berkeley.edu/~rcs/research/interactive_latency.html"></section>
                     <section>
                         <img src="../img/throughput_figure.png" width=80%>
                     </section>
@@ -145,6 +146,7 @@
                 <section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                            <!-- .slide: style="font-size:0.85em" -->  
                             ## Performance Measures
 
                             How to evaluate the performance of a scaling? Let $T_J$ be the time complexity of an algorithm using $J$ processing elements.
@@ -241,6 +243,7 @@
                 <section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                            <!-- .slide: style="font-size:0.85em" -->  
                             #### Spark
                             HadoopMR is designed for acyclic data flow models while Spark handles cyclic (e.g. iterative) data flows.
 
@@ -268,6 +271,7 @@
                     </section>
                     <section data-markdown data-separator-notes="^Note:">
                         <script type="text/template">
+                            <!-- .slide: style="font-size:0.85em" -->  
                             #### Spark and Hadoop comparison:
 
                             |                          | HadoopMR     | Spark                           |
