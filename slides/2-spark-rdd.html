@@ -266,7 +266,7 @@ sc = SparkContext(conf = conf)
                         | transformation | description                      |
                         | -------------: | -------------------------------: |
                         | `union(otherRdd)`  | Returns union with `otherRdd` |
-                        | `instersection(otherRdd)`  | Returns intersection with `otherRdd` |
+                        | `intersection(otherRdd)`  | Returns intersection with `otherRdd` |
                         | `subtract(otherRdd)`  | Return each value in `self` that is not contained in `otherRdd`. |
 
                         Note:
@@ -351,9 +351,10 @@ sc = SparkContext(conf = conf)
                         #### Actions
                         | action         | description                      |
                         | -------------: | -------------------------------: |
-                        | `reduce(f)`    | Reduces the elements of this RDD using the specified commutative and associative binary operator `f`. Currently reduces partitions locally. |
-                        | `fold(zeroValue, op)`    | Same as reduce() but with the provided zero value. |
-
+                        | `reduce(op)`    | Combines elements of an RDD binary operator 'op'.|
+                        | `fold(zeroValue, op)`    | Combines elements of an RDD using |
+                        
+                        Bonus question: what is the algebraic difference between reduce and fold?
                         The function `op(x, y)` is allowed to modify x and return it as its result value to avoid object allocation; however, it should not modify y.
 
                         Note:
@@ -405,7 +406,9 @@ sc = SparkContext(conf = conf)
                         Example : insert records into a database with `f`
 
                         The `foreach()` action lets us perform computations on each element in the RDD without bringing it back locally.
-
+                        
+                        Note:
+                        - Try to make them understand that this actually a flapMap.
                         </script>
                     </section>
 
@@ -426,7 +429,7 @@ sc = SparkContext(conf = conf)
                         - Spark uses lazy evaluation to reduce the number of passes it has to take over our data by grouping operations together.
                         - In systems like Hadoop MapReduce, developers often have to spend a lot of time considering how to group together operations to minimize the number of MapReduce passes.
                         - In Spark, no substantial benefit to writing a single complex map instead of chaining together many simple operations.
-                        - Thus, users are free to organize their program into smaller, more manageable operations.
+                        - Thus, users are free to organize their program into more smaller, primitive, more manageable operations. i.e. chaining.
                         </script>
                     </section>
                     <section data-markdown data-separator-notes="^Note:">
@@ -638,7 +641,7 @@ sc = SparkContext(conf = conf)
 
                         | transformation | description                      |
                         | -------------: | -------------------------------: |
-                        | `reduceByKey(f)` | Merge the values for each key using an associative reduce function `f`. |
+                        | `reduceByKey(f)` | Merge the values for each key using an associative and commutative reduce function `f`. |
                         | `foldByKey(f)` | Merge the values for each key using an associative reduce function `f`. |
 
                         <pre><code class="hljs py" data-trim>
